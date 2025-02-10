@@ -23,7 +23,7 @@ class TestModelThreshold:
         self.model_name = pytestconfig.getoption("model_name")
         self.neural_net_name = pytestconfig.getoption("neural_net_name")
 
-        file_name = f'./{self.model_name}/{self.neural_net_name}.json'
+        file_name = f"./{self.model_name}/{self.neural_net_name}.json"
 
         with open(file_name ,'r') as file:
             data = json.load(file)
