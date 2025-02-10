@@ -4,6 +4,7 @@
 # See https://llvm.org/LICENSE.txt for license information.
 # SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 
+import pytest
 
 class VmfbManager:
     sdxl_clip_cpu_vmfb = None
@@ -26,3 +27,17 @@ class VmfbManager:
     sd3_clip_rocm_vmfb = None
     sd3_vae_rocm_vmfb = None
     sd3_mmdit_rocm_vmfb = None
+
+def pytest_addoption(parser):
+    parser.addoption(
+        "--model-name", 
+        action="store", 
+        type=str, 
+        default=""
+    )
+    parser.addoption(
+        "--neural-net-name", 
+        action="store", 
+        type=str, 
+        default=""
+    )
