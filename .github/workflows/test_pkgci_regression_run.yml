@@ -79,7 +79,7 @@ jobs:
           source ${VENV_DIR}/bin/activate
           pip install -e pkgci_test_suite
 
-      # TODO(#17344): regenerate .mlirbc files, test plat_rdna3_rocm on rocm
+      # TODO(#17344 in iree repo): regenerate .mlirbc files, test plat_rdna3_rocm on rocm
       # # In-tree tests
       # - name: Run experimental/regression_suite tests
       #   run: |
@@ -124,7 +124,7 @@ jobs:
         if: contains(matrix.name, 'rocm_mi250_gfx90a')
         run: |
           source ${VENV_DIR}/bin/activate
-          pytest ./pkgci_test_suite/benchmarks/benchmark_sdxl_rocm.py \
+          pytest ./pkgci_test_suite/benchmarks/sdxl/benchmark_sdxl_rocm.py \
             --goldentime-tolerance-multiplier 1.3 \
             --goldentime-rocm-e2e-ms 1100.0 \
             --goldentime-rocm-unet-ms 255.0 \
@@ -149,7 +149,7 @@ jobs:
         if: contains(matrix.name, 'rocm_mi300_gfx942')
         run: |
           source ${VENV_DIR}/bin/activate
-          pytest ./pkgci_test_suite/benchmarks/benchmark_sdxl_rocm.py \
+          pytest ./pkgci_test_suite/benchmarks/sdxl/benchmark_sdxl_rocm.py \
             --goldentime-tolerance-multiplier 1.1 \
             --goldentime-rocm-e2e-ms 325.0 \
             --goldentime-rocm-unet-ms 80.0 \
@@ -178,7 +178,7 @@ jobs:
         if: contains(matrix.name, 'rocm_mi308_gfx942')
         run: |
           source ${VENV_DIR}/bin/activate
-          pytest ./pkgci_test_suite/benchmarks/benchmark_sdxl_rocm.py \
+          pytest ./pkgci_test_suite/benchmarks/sdxl/benchmark_sdxl_rocm.py \
             --goldentime-tolerance-multiplier 1.1 \
             --goldentime-rocm-e2e-ms 800.0 \
             --goldentime-rocm-unet-ms 195.0 \
