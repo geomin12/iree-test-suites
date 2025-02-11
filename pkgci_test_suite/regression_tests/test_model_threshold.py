@@ -81,13 +81,17 @@ class TestModelThreshold:
             if os.path.isfile(f"{iree_test_path_extension}/attention_and_matmul_spec_fp16_{sku}.mlir"):
                 self.rocm_compiler_flags.append(f"--iree-codegen-transform-dialect-library={iree_test_path_extension}/attention_and_matmul_spec_fp16_{sku}.mlir")
 
+            # TODO: add comments
+
             self.common_rule_flags = common_run_flags_generation(self.inputs, self.outputs)
-            self.cpu_threshold_args = data.get("cpu_threshold_args")
-            self.rocm_threshold_args = data.get("rocm_threshold_args")
+            self.cpu_threshold_args = data.get("cpu_threshold_args") if data.get("cpu_threshold_args") else []
+            self.rocm_threshold_args = data.get("rocm_threshold_args") if data.get("rocm_threshold_args") else []
             self.run_cpu_function = data.get("run_cpu_function")
             self.run_rocm_function = data.get("run_rocm_function")
             self.include_run_module_args = data.get("include_run_module_args")
             self.compile_only = data.get("compile_only")
+            self.cpu_run_test_expecting_to_fail = True if data.get("cpu_run_test_expecting_to_fail") else False
+            self.rocm_run_test_expecting_to_fail = True if data.get("rocm_run_test_expecting_to_fail") else False
             
 
     ###############################################################################
@@ -107,19 +111,22 @@ class TestModelThreshold:
     def test_run_cpu_threshold(self):
         if self.compile_only:
             pytest.skip()
+        
+        if self.cpu_run_test_expecting_to_fail:
+            pytest.xfail("Expected run to fail")
 
         if self.include_run_module_args:
             self.cpu_threshold_args.append(f"--module={VmfbManager.cpu_vmfb}")
+
+        args = self.cpu_threshold_args + self.common_rule_flags
+        if self.real_weights:
+            args.append(f"--parameters=model={self.real_weights.path}")
 
         iree_run_module(
             VmfbManager.cpu_vmfb,
             device="local-task",
             function=self.run_cpu_function,
-            args=[
-                f"--parameters=model={self.real_weights.path}",   
-            ]
-            + self.cpu_threshold_args
-            + self.common_rule_flags,
+            args=args
         )
 
     ###############################################################################
@@ -140,17 +147,20 @@ class TestModelThreshold:
     def test_run_rocm_threshold(self):
         if self.compile_only:
             pytest.skip()
+        
+        if self.rocm_run_test_expecting_to_fail:
+            pytest.xfail("Expected run to fail")
 
         if self.include_run_module_args:
             self.rocm_threshold_args.append(f"--module={VmfbManager.rocm_vmfb}")
+
+        args = self.rocm_threshold_args + self.common_rule_flags
+        if self.real_weights:
+            args.append(f"--parameters=model={self.real_weights.path}")
 
         return iree_run_module(
             VmfbManager.rocm_vmfb,
             device="hip",
             function=self.run_rocm_function,
-            args=[
-                f"--parameters=model={self.real_weights.path}",
-            ]
-            + self.rocm_threshold_args
-            + self.common_rule_flags,
+            args=args
         )
