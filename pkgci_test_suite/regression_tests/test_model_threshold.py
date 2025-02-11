@@ -91,7 +91,7 @@ class TestModelThreshold:
         )
 
     @pytest.mark.depends(on=["test_compile_cpu"])
-    @pytest.mark.skipif(compile_only == True)
+    @pytest.mark.skipif(compile_only == True, reason = "Model specified is compile only")
     def test_run_cpu_threshold(self):
         iree_run_module(
             VmfbManager.cpu_vmfb,
@@ -119,7 +119,7 @@ class TestModelThreshold:
         )
 
     @pytest.mark.depends(on=["test_compile_rocm"])
-    @pytest.mark.skipif(compile_only == True)
+    @pytest.mark.skipif(compile_only == True, reason = "Model specified is compile only")
     def test_run_rocm_threshold(self):
         return iree_run_module(
             VmfbManager.rocm_vmfb,
