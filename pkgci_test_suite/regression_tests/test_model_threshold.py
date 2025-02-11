@@ -76,28 +76,42 @@ class TestModelThreshold:
             if self.rocm_compile_flags:
                 self.rocm_compile_flags.append("--iree-hal-target-backends=rocm")
                 self.rocm_compile_flags.append(f"--iree-hip-target={rocm_chip}")
-            
-            # specific to unet fp16
+
+            # TODO: add comments, add README of JSON file options!!!
+
+            self.common_rule_flags = common_run_flags_generation(self.inputs, self.outputs)
+            self.cpu_threshold_args = data.get("cpu_threshold_args", [])
+            self.rocm_threshold_args = data.get("rocm_threshold_args", [])
+            self.run_cpu_function = data.get("run_cpu_function")
+            self.run_rocm_function = data.get("run_rocm_function")
+
+            # Custom configurations
+            self.include_run_module_args = data.get("include_run_module_args", False)
+            self.compile_only = data.get("compile_only")
+            self.cpu_run_test_expecting_to_fail = data.get("cpu_run_test_expecting_to_fail", False)
+            self.rocm_run_test_expecting_to_fail = data.get("rocm_run_test_expecting_to_fail", False)
+            self.rocm_compile_chip_expecting_to_fail = data.get("rocm_compile_chip_expecting_to_fail", [])
+            self.rocm_tests_only = data.get("rocm_tests_only", False)
+
+            # specific configuration to unet fp16
             if os.path.isfile(f"{iree_test_path_extension}/attention_and_matmul_spec_fp16_{sku}.mlir"):
                 self.rocm_compiler_flags.append(f"--iree-codegen-transform-dialect-library={iree_test_path_extension}/attention_and_matmul_spec_fp16_{sku}.mlir")
 
-            # TODO: add comments
-
-            self.common_rule_flags = common_run_flags_generation(self.inputs, self.outputs)
-            self.cpu_threshold_args = data.get("cpu_threshold_args") if data.get("cpu_threshold_args") else []
-            self.rocm_threshold_args = data.get("rocm_threshold_args") if data.get("rocm_threshold_args") else []
-            self.run_cpu_function = data.get("run_cpu_function")
-            self.run_rocm_function = data.get("run_rocm_function")
-            self.include_run_module_args = data.get("include_run_module_args")
-            self.compile_only = data.get("compile_only")
-            self.cpu_run_test_expecting_to_fail = True if data.get("cpu_run_test_expecting_to_fail") else False
-            self.rocm_run_test_expecting_to_fail = True if data.get("rocm_run_test_expecting_to_fail") else False
+            # specific configuration to punet int8
+            if (self.neural_net_name == "punet_int8_fp8" or self.neural_net_name == "punet_int8_fp16") and os.path.isfile(f"{iree_test_path_extension}/attention_and_matmul_spec_punet_{sku}.mlir"):
+                self.rocm_compiler_flags.append(f"--iree-codegen-transform-dialect-library={iree_test_path_extension}/attention_and_matmul_spec_punet_{sku}.mlir")
+            elif (self.neural_net_name == "punet_int8_fp8" or self.neural_net_name == "punet_int8_fp16") :
+                # TODO: Investigate numerics failure without using the MI300 punet attention spec
+                self.rocm_compiler_flags.append(f"--iree-codegen-transform-dialect-library={iree_test_path_extension}/attention_and_matmul_spec_punet_mi300.mlir")
             
 
     ###############################################################################
     # CPU
     ###############################################################################
     def test_compile_cpu(self):
+        if self.rocm_tests_only:
+            pytest.skip("Only ROCM tests are being run, skipping CPU tests...")
+
         vmfbs_path = f"{self.model_name}_{self.neural_net_name}_vmfbs"
         VmfbManager.cpu_vmfb = iree_compile(
             self.mlir,
@@ -110,7 +124,7 @@ class TestModelThreshold:
     @pytest.mark.depends(on=["test_compile_cpu"])
     def test_run_cpu_threshold(self):
         if self.compile_only:
-            pytest.skip()
+            pytest.skip("Only compilation tests are selected, skipping threshold test...")
         
         if self.cpu_run_test_expecting_to_fail:
             pytest.xfail("Expected run to fail")
@@ -134,6 +148,9 @@ class TestModelThreshold:
     ###############################################################################
 
     def test_compile_rocm(self):
+        if rocm_chip in self.rocm_compile_chip_expecting_to_fail:
+            pytest.xfail(f"Expecting {rocm_chip} compilation to fail for {self.neural_net_name}")
+
         vmfbs_path = f"{self.model_name}_{self.neural_net_name}_vmfbs"
         VmfbManager.rocm_vmfb = iree_compile(
             self.mlir,
@@ -146,7 +163,7 @@ class TestModelThreshold:
     @pytest.mark.depends(on=["test_compile_rocm"])
     def test_run_rocm_threshold(self):
         if self.compile_only:
-            pytest.skip()
+            pytest.skip("Only compilation tests are selected, skipping threshold test...")
         
         if self.rocm_run_test_expecting_to_fail:
             pytest.xfail("Expected run to fail")

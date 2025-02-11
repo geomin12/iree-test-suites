@@ -1,12 +1,12 @@
 {
     "outputs": [
         {
-            "source": "https://sharkpublic.blob.core.windows.net/sharkpublic/sai/sdxl-punet/11-13-2024/punet_fp8_out.0.bin",
+            "source": "https://sharkpublic.blob.core.windows.net/sharkpublic/sai/sdxl-punet/11-13-2024/punet_fp16_out.0.bin",
             "value": "1x4x128x128xf16"
         }
     ],
-    "real_weights": "https://sharkpublic.blob.core.windows.net/sharkpublic/sai/sdxl-punet/punet_fp8_weights.irpa",
-    "mlir": "https://sharkpublic.blob.core.windows.net/sharkpublic/stan/sdxl-punet/11-26-2024/punet_fp8.mlir",
+    "real_weights": "https://sharkpublic.blob.core.windows.net/sharkpublic/sai/sdxl-punet/punet_weights.irpa",
+    "mlir": "https://sharkpublic.blob.core.windows.net/sharkpublic/sai/sdxl-punet/11-8-2024/punet_fp16.mlir",
     "cpu_compiler_flags": [
         "--iree-llvmcpu-target-cpu-features=host",
         "--iree-llvmcpu-fail-on-out-of-bounds-stack-allocation=false",
