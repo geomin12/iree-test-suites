@@ -72,6 +72,8 @@ class TestModelThreshold:
             self.common_rule_flags = common_run_flags_generation(self.inputs, self.outputs)
             self.cpu_threshold_args = data.get("cpu_threshold_args")
             self.rocm_threshold_args = data.get("rocm_threshold_args")
+            self.run_cpu_function = data.get("run_cpu_function")
+            self.run_rocm_function = data.get("run_rocm_function")
             self.compile_only = data.get("compile_only")
             
 
@@ -95,7 +97,7 @@ class TestModelThreshold:
         iree_run_module(
             VmfbManager.cpu_vmfb,
             device="local-task",
-            function="encode_prompts",
+            function=self.run_cpu_function,
             args=[
                 f"--parameters=model={self.real_weights.path}",   
             ]
@@ -124,7 +126,7 @@ class TestModelThreshold:
         return iree_run_module(
             VmfbManager.rocm_vmfb,
             device="hip",
-            function="encode_prompts",
+            function=self.run_rocm_function,
             args=[
                 f"--parameters=model={self.real_weights.path}",
             ]
