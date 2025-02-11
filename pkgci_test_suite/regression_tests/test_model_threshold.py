@@ -14,6 +14,8 @@ import json
 
 rocm_chip = os.getenv("ROCM_CHIP", default="gfx942")
 vmfb_dir = os.getenv("TEST_OUTPUT_ARTIFACTS", default=Path.cwd()) 
+sku = os.getenv("SKU", default="mi300")
+iree_test_path_extension = os.getenv("IREE_TEST_PATH_EXTENSION", default=Path.cwd())
 
 # Helper methods
 def fetch_source_fixtures_for_run_flags(inference_list, model_name, neural_net_name):
@@ -31,11 +33,17 @@ def common_run_flags_generation(input_list, output_list):
 
     if input_list:
         for path, value in input_list:
-            flags_list.append(f"--input={value}=@{path}")
+            if not value:
+                flags_list.append(f"--input=@{path}")
+            else:
+                flags_list.append(f"--input={value}=@{path}")
 
     if output_list:
         for path, value in output_list:
-            flags_list.append(f"--expected_output={value}=@{path}")
+            if not value:
+                flags_list.append(f"--expected_output=@{path}")
+            else:
+                flags_list.append(f"--expected_output={value}=@{path}")
     
     return flags_list
 
@@ -68,12 +76,17 @@ class TestModelThreshold:
             if self.rocm_compile_flags:
                 self.rocm_compile_flags.append("--iree-hal-target-backends=rocm")
                 self.rocm_compile_flags.append(f"--iree-hip-target={rocm_chip}")
+            
+            # specific to unet fp16
+            if os.path.isfile(f"{iree_test_path_extension}/attention_and_matmul_spec_fp16_{sku}.mlir"):
+                self.rocm_compiler_flags.append(f"--iree-codegen-transform-dialect-library={iree_test_path_extension}/attention_and_matmul_spec_fp16_{sku}.mlir")
 
             self.common_rule_flags = common_run_flags_generation(self.inputs, self.outputs)
             self.cpu_threshold_args = data.get("cpu_threshold_args")
             self.rocm_threshold_args = data.get("rocm_threshold_args")
             self.run_cpu_function = data.get("run_cpu_function")
             self.run_rocm_function = data.get("run_rocm_function")
+            self.include_run_module_args = data.get("include_run_module_args")
             self.compile_only = data.get("compile_only")
             
 
@@ -94,6 +107,10 @@ class TestModelThreshold:
     def test_run_cpu_threshold(self):
         if self.compile_only:
             pytest.skip()
+
+        if self.include_run_module_args:
+            self.cpu_threshold_args.append(f"--module={VmfbManager.cpu_vmfb}")
+
         iree_run_module(
             VmfbManager.cpu_vmfb,
             device="local-task",
@@ -123,6 +140,10 @@ class TestModelThreshold:
     def test_run_rocm_threshold(self):
         if self.compile_only:
             pytest.skip()
+
+        if self.include_run_module_args:
+            self.rocm_threshold_args.append(f"--module={VmfbManager.rocm_vmfb}")
+
         return iree_run_module(
             VmfbManager.rocm_vmfb,
             device="hip",

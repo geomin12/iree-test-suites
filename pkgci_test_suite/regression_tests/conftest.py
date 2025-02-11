@@ -7,6 +7,8 @@
 import pytest
 
 class VmfbManager:
+    cpu_vmfb = None
+    rocm_vmfb = None
     sdxl_clip_cpu_vmfb = None
     sdxl_vae_cpu_vmfb = None
     sdxl_unet_fp16_cpu_vmfb = None
