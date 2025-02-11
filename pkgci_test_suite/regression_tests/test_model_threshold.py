@@ -15,6 +15,32 @@ import json
 rocm_chip = os.getenv("ROCM_CHIP", default="gfx942")
 vmfb_dir = os.getenv("TEST_OUTPUT_ARTIFACTS", default=Path.cwd())
 
+# Helper methods
+def fetch_source_fixture(source_url, model_name, neural_net_name):
+        return fetch_source_fixture(source_url, group=f"{model_name}_{neural_net_name}") if source_url else None
+
+def fetch_source_fixtures_for_run_flags(inference_list):
+    result = []
+    for entry in inference_list:
+        source = entry.get("source")
+        value = entry.get("value")
+        source_fixture = fetch_source_fixture(source)
+        result.append([source_fixture.path, value])
+    
+    return result
+
+def common_run_flags_generation(input_list, output_list):
+    flags_list = []
+
+    for path, value in input_list:
+        flags_list.append(f"--input={value}=@{path}")
+
+    for path, value in output_list:
+        flags_list.append(f"--expected_output={value}=@{path}")
+    
+    return flags_list
+
+
 class TestModelThreshold:
 
     @pytest.fixture(autouse = True, scope = "class")
@@ -23,16 +49,17 @@ class TestModelThreshold:
         self.model_name = pytestconfig.getoption("model_name")
         self.neural_net_name = pytestconfig.getoption("neural_net_name")
 
+        # TODO: fix the path name, not always curr dir
         file_name = f"./{self.model_name}/{self.neural_net_name}.json"
 
         with open(file_name ,'r') as file:
             data = json.load(file)
 
             # retrieve source fixtures
-            self.inputs = self.fetch_source_fixtures_for_run_flags(data.get("inputs"))
-            self.outputs = self.fetch_source_fixtures_for_run_flags(data.get("outputs"))
-            self.real_weights = self.fetch_source_fixture(data.get("real_weights"))
-            self.mlir = self.fetch_source_fixture(data.get("mlir"))
+            self.inputs = fetch_source_fixtures_for_run_flags(data.get("inputs"))
+            self.outputs = fetch_source_fixtures_for_run_flags(data.get("outputs"))
+            self.real_weights = fetch_source_fixture(data.get("real_weights"))
+            self.mlir = fetch_source_fixture(data.get("mlir"))
 
             # setting custom compiler for cpu and rocm
             self.cpu_compiler_flags = data.get("cpu_compiler_flags")
@@ -41,31 +68,9 @@ class TestModelThreshold:
             self.rocm_compile_flags.append("--iree-hal-target-backends=rocm")
             self.rocm_compile_flags.append(f"--iree-hip-target={rocm_chip}")
 
-            self.common_rule_flags = self.common_run_flags_generation(self.inputs, self.outputs)
-    
-    def fetch_source_fixture(self, source_url):
-        return fetch_source_fixture(source_url, group=f"{self.model_name}_{self.neural_net_name}") if source_url else None
+            self.common_rule_flags = common_run_flags_generation(self.inputs, self.outputs)
 
-    def fetch_source_fixtures_for_run_flags(self, inference_list):
-        result = []
-        for entry in inference_list:
-            source = entry.get("source")
-            value = entry.get("value")
-            source_fixture = self.fetch_source_fixture(source)
-            result.append([source_fixture.path, value])
-        
-        return result
-
-    def common_run_flags_generation(self, input_list, output_list):
-        flags_list = []
-
-        for path, value in input_list:
-            flags_list.append(f"--input={value}=@{path}")
-
-        for path, value in output_list:
-            flags_list.append(f"--expected_output={value}=@{path}")
-        
-        return flags_list
+    # TODO: sometimes, code will only compile. add cases for that
 
 
     ###############################################################################
@@ -108,6 +113,9 @@ class TestModelThreshold:
             / Path(vmfbs_path)
             / Path(self.mlir.path.name).with_suffix(f".rocm_{rocm_chip}.vmfb"),
         )
+
+
+    # TODO: add cases, where args may have more!
 
 
     @pytest.mark.depends(on=["test_compile_rocm"])

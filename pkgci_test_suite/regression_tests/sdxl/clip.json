@@ -36,7 +36,7 @@
         "--iree-opt-const-eval=false",
         "--iree-opt-strip-assertions=true",
         "--iree-llvmcpu-enable-ukernels=all",
-        "--iree-global-opt-enable-quantized-matmul-reassociation",
+        "--iree-global-opt-enable-quantized-matmul-reassociation"
     ],
     "rocm_compiler_flags": [
         "--iree-input-type=torch",
@@ -53,6 +53,6 @@
         "--iree-execution-model=async-external",
         "--iree-preprocessing-pass-pipeline=builtin.module(iree-preprocessing-transpose-convolution-pipeline,iree-preprocessing-pad-to-intrinsics{pad-target-type=conv})",
         "--iree-scheduling-dump-statistics-format=json",
-        "--iree-scheduling-dump-statistics-file=compilation_info.json",
+        "--iree-scheduling-dump-statistics-file=compilation_info.json"
     ]
 }
