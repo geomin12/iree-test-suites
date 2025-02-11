@@ -15,9 +15,7 @@ import json
 rocm_chip = os.getenv("ROCM_CHIP", default="gfx942")
 vmfb_dir = os.getenv("TEST_OUTPUT_ARTIFACTS", default=Path.cwd()) 
 
-# Global variables and helper methods
-compile_only = False
-
+# Helper methods
 def fetch_source_fixtures_for_run_flags(inference_list, model_name, neural_net_name):
     result = []
     for entry in inference_list:
@@ -74,8 +72,8 @@ class TestModelThreshold:
             self.common_rule_flags = common_run_flags_generation(self.inputs, self.outputs)
             self.cpu_threshold_args = data.get("cpu_threshold_args")
             self.rocm_threshold_args = data.get("rocm_threshold_args")
-            global compile_only
-            compile_only = data.get("compile_only")
+            self.compile_only = data.get("compile_only")
+            
 
     ###############################################################################
     # CPU
@@ -91,8 +89,9 @@ class TestModelThreshold:
         )
 
     @pytest.mark.depends(on=["test_compile_cpu"])
-    @pytest.mark.skipif(compile_only == True, reason = "Model specified is compile only")
     def test_run_cpu_threshold(self):
+        if self.compile_only:
+            pytest.skip()
         iree_run_module(
             VmfbManager.cpu_vmfb,
             device="local-task",
@@ -119,8 +118,9 @@ class TestModelThreshold:
         )
 
     @pytest.mark.depends(on=["test_compile_rocm"])
-    @pytest.mark.skipif(compile_only == True, reason = "Model specified is compile only")
     def test_run_rocm_threshold(self):
+        if self.compile_only:
+            pytest.skip()
         return iree_run_module(
             VmfbManager.rocm_vmfb,
             device="hip",
