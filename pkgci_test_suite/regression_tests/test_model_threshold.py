@@ -13,30 +13,31 @@ import subprocess
 import json 
 
 rocm_chip = os.getenv("ROCM_CHIP", default="gfx942")
-vmfb_dir = os.getenv("TEST_OUTPUT_ARTIFACTS", default=Path.cwd())
+vmfb_dir = os.getenv("TEST_OUTPUT_ARTIFACTS", default=Path.cwd()) 
 
-# Helper methods
-def fetch_source_fixture(source_url, model_name, neural_net_name):
-        return fetch_source_fixture(source_url, group=f"{model_name}_{neural_net_name}") if source_url else None
+# Global variables and helper methods
+compile_only = False
 
-def fetch_source_fixtures_for_run_flags(inference_list):
+def fetch_source_fixtures_for_run_flags(inference_list, model_name, neural_net_name):
     result = []
     for entry in inference_list:
         source = entry.get("source")
         value = entry.get("value")
-        source_fixture = fetch_source_fixture(source)
+        source_fixture = fetch_source_fixture(source, group=f"{model_name}_{neural_net_name}")
         result.append([source_fixture.path, value])
     
     return result
-
+    
 def common_run_flags_generation(input_list, output_list):
     flags_list = []
 
-    for path, value in input_list:
-        flags_list.append(f"--input={value}=@{path}")
+    if input_list:
+        for path, value in input_list:
+            flags_list.append(f"--input={value}=@{path}")
 
-    for path, value in output_list:
-        flags_list.append(f"--expected_output={value}=@{path}")
+    if output_list:
+        for path, value in output_list:
+            flags_list.append(f"--expected_output={value}=@{path}")
     
     return flags_list
 
@@ -49,29 +50,32 @@ class TestModelThreshold:
         self.model_name = pytestconfig.getoption("model_name")
         self.neural_net_name = pytestconfig.getoption("neural_net_name")
 
-        # TODO: fix the path name, not always curr dir
-        file_name = f"./{self.model_name}/{self.neural_net_name}.json"
+        file_name = f"{Path.cwd()}/pkgci_test_suite/regression_tests/{self.model_name}/{self.neural_net_name}.json"
 
         with open(file_name ,'r') as file:
             data = json.load(file)
 
-            # retrieve source fixtures
-            self.inputs = fetch_source_fixtures_for_run_flags(data.get("inputs"))
-            self.outputs = fetch_source_fixtures_for_run_flags(data.get("outputs"))
-            self.real_weights = fetch_source_fixture(data.get("real_weights"))
-            self.mlir = fetch_source_fixture(data.get("mlir"))
+            # retrieve source fixtures if available in JSON
+            self.inputs = fetch_source_fixtures_for_run_flags(data.get("inputs"), self.model_name, self.neural_net_name) if data.get("inputs") else None
+            self.outputs = fetch_source_fixtures_for_run_flags(data.get("outputs"), self.model_name, self.neural_net_name) if data.get("outputs") else None
+            self.real_weights = fetch_source_fixture(data.get("real_weights"), group=f"{self.model_name}_{self.neural_net_name}") if data.get("real_weights") else None
+            self.mlir = fetch_source_fixture(data.get("mlir"), group=f"{self.model_name}_{self.neural_net_name}") if data.get("mlir") else None
 
             # setting custom compiler for cpu and rocm
             self.cpu_compiler_flags = data.get("cpu_compiler_flags")
-            self.cpu_compiler_flags.append("--iree-hal-target-backends=llvm-cpu")
+            if self.cpu_compiler_flags:
+                self.cpu_compiler_flags.append("--iree-hal-target-backends=llvm-cpu")
+
             self.rocm_compile_flags = data.get("rocm_compiler_flags")
-            self.rocm_compile_flags.append("--iree-hal-target-backends=rocm")
-            self.rocm_compile_flags.append(f"--iree-hip-target={rocm_chip}")
+            if self.rocm_compile_flags:
+                self.rocm_compile_flags.append("--iree-hal-target-backends=rocm")
+                self.rocm_compile_flags.append(f"--iree-hip-target={rocm_chip}")
 
             self.common_rule_flags = common_run_flags_generation(self.inputs, self.outputs)
-
-    # TODO: sometimes, code will only compile. add cases for that
-
+            self.cpu_threshold_args = data.get("cpu_threshold_args")
+            self.rocm_threshold_args = data.get("rocm_threshold_args")
+            global compile_only
+            compile_only = data.get("compile_only")
 
     ###############################################################################
     # CPU
@@ -86,17 +90,17 @@ class TestModelThreshold:
             / Path(self.mlir.path.name).with_suffix(f".cpu.vmfb"),
         )
 
-
     @pytest.mark.depends(on=["test_compile_cpu"])
+    @pytest.mark.skipif(compile_only == True)
     def test_run_cpu_threshold(self):
         iree_run_module(
             VmfbManager.cpu_vmfb,
             device="local-task",
             function="encode_prompts",
             args=[
-                f"--parameters=model={self.real_weights.path}",
-                "--expected_f16_threshold=1.0f",
+                f"--parameters=model={self.real_weights.path}",   
             ]
+            + self.cpu_threshold_args
             + self.common_rule_flags,
         )
 
@@ -114,11 +118,8 @@ class TestModelThreshold:
             / Path(self.mlir.path.name).with_suffix(f".rocm_{rocm_chip}.vmfb"),
         )
 
-
-    # TODO: add cases, where args may have more!
-
-
     @pytest.mark.depends(on=["test_compile_rocm"])
+    @pytest.mark.skipif(compile_only == True)
     def test_run_rocm_threshold(self):
         return iree_run_module(
             VmfbManager.rocm_vmfb,
@@ -126,7 +127,7 @@ class TestModelThreshold:
             function="encode_prompts",
             args=[
                 f"--parameters=model={self.real_weights.path}",
-                "--expected_f16_threshold=1.0f",
             ]
+            + self.rocm_threshold_args
             + self.common_rule_flags,
         )

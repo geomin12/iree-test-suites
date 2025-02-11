@@ -25,15 +25,11 @@ IREE_COMPILE_QOL_FLAGS = [
     "--iree-consteval-jit-debug",
 ]
 
-
 def fetch_source_fixture(url: str, *, group: str):
-    @pytest.fixture
-    def fetcher() -> FetchedArtifact:
-        art = FetchedArtifact(url=url, group=group)
-        art.start()
-        return art
+    art = FetchedArtifact(url=url, group=group)
+    art.start()
+    return art
 
-    return fetcher
 
 
 def iree_compile(source: Artifact, flags: Sequence[str], vmfb_path: Path):
