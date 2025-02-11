@@ -63,6 +63,5 @@
     ],
     "include_run_module_args": true,
     "run_cpu_function": "run_forward",
-    "run_rocm_function": "run_forward",
-    "compile_only": false
+    "run_rocm_function": "run_forward"
 }

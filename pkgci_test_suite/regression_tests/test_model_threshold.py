@@ -72,10 +72,10 @@ class TestModelThreshold:
             if self.cpu_compiler_flags:
                 self.cpu_compiler_flags.append("--iree-hal-target-backends=llvm-cpu")
 
-            self.rocm_compile_flags = data.get("rocm_compiler_flags")
-            if self.rocm_compile_flags:
-                self.rocm_compile_flags.append("--iree-hal-target-backends=rocm")
-                self.rocm_compile_flags.append(f"--iree-hip-target={rocm_chip}")
+            self.rocm_compiler_flags = data.get("rocm_compiler_flags")
+            if self.rocm_compiler_flags:
+                self.rocm_compiler_flags.append("--iree-hal-target-backends=rocm")
+                self.rocm_compiler_flags.append(f"--iree-hip-target={rocm_chip}")
 
             # TODO: add comments, add README of JSON file options!!!
 
@@ -87,7 +87,7 @@ class TestModelThreshold:
 
             # Custom configurations
             self.include_run_module_args = data.get("include_run_module_args", False)
-            self.compile_only = data.get("compile_only")
+            self.compile_only = data.get("compile_only", False)
             self.cpu_run_test_expecting_to_fail = data.get("cpu_run_test_expecting_to_fail", False)
             self.rocm_run_test_expecting_to_fail = data.get("rocm_run_test_expecting_to_fail", False)
             self.rocm_compile_chip_expecting_to_fail = data.get("rocm_compile_chip_expecting_to_fail", [])
@@ -95,14 +95,14 @@ class TestModelThreshold:
 
             # specific configuration to unet fp16
             if os.path.isfile(f"{iree_test_path_extension}/attention_and_matmul_spec_fp16_{sku}.mlir"):
-                self.rocm_compiler_flags.append(f"--iree-codegen-transform-dialect-library={iree_test_path_extension}/attention_and_matmul_spec_fp16_{sku}.mlir")
+                self.rocm_compiler_flags.append(f"--iree-codegen-transform-dialect-library={iree_test_path_extension}/pkgci_test_suite/build_tools/external_test_suite/attention_and_matmul_spec_fp16_{sku}.mlir")
 
             # specific configuration to punet int8
-            if (self.neural_net_name == "punet_int8_fp8" or self.neural_net_name == "punet_int8_fp16") and os.path.isfile(f"{iree_test_path_extension}/attention_and_matmul_spec_punet_{sku}.mlir"):
-                self.rocm_compiler_flags.append(f"--iree-codegen-transform-dialect-library={iree_test_path_extension}/attention_and_matmul_spec_punet_{sku}.mlir")
-            elif (self.neural_net_name == "punet_int8_fp8" or self.neural_net_name == "punet_int8_fp16") :
+            if (self.neural_net_name == "punet_int8_fp8" or self.neural_net_name == "punet_int8_fp16") and os.path.isfile(f"{iree_test_path_extension}/pkgci_test_suite/build_tools/external_test_suite/attention_and_matmul_spec_punet_{sku}.mlir"):
+                self.rocm_compiler_flags.append(f"--iree-codegen-transform-dialect-library={iree_test_path_extension}/pkgci_test_suite/build_tools/external_test_suite/attention_and_matmul_spec_punet_{sku}.mlir")
+            elif (self.neural_net_name == "punet_int8_fp8" or self.neural_net_name == "punet_int8_fp16"):
                 # TODO: Investigate numerics failure without using the MI300 punet attention spec
-                self.rocm_compiler_flags.append(f"--iree-codegen-transform-dialect-library={iree_test_path_extension}/attention_and_matmul_spec_punet_mi300.mlir")
+                self.rocm_compiler_flags.append(f"--iree-codegen-transform-dialect-library={iree_test_path_extension}/pkgci_test_suite/build_tools/external_test_suite/attention_and_matmul_spec_punet_mi300.mlir")
             
 
     ###############################################################################
@@ -154,7 +154,7 @@ class TestModelThreshold:
         vmfbs_path = f"{self.model_name}_{self.neural_net_name}_vmfbs"
         VmfbManager.rocm_vmfb = iree_compile(
             self.mlir,
-            self.rocm_compile_flags,
+            self.rocm_compiler_flags,
             Path(vmfb_dir)
             / Path(vmfbs_path)
             / Path(self.mlir.path.name).with_suffix(f".rocm_{rocm_chip}.vmfb"),

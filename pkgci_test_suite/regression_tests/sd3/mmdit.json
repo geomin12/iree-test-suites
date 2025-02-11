@@ -49,7 +49,6 @@
     ],
     "run_cpu_function": "run_forward",
     "run_rocm_function": "run_forward",
-    "compile_only": false,
     "cpu_run_test_expecting_to_fail": true,
     "rocm_run_test_expecting_to_fail": true
 }

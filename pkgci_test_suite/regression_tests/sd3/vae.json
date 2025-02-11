@@ -39,6 +39,5 @@
         "--expected_f32_threshold=0.7f"
     ],
     "run_cpu_function": "decode",
-    "run_rocm_function": "decode",
-    "compile_only": false
+    "run_rocm_function": "decode"
 }

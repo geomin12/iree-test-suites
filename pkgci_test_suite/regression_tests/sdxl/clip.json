@@ -62,6 +62,5 @@
         "--expected_f16_threshold=1.0f"
     ],
     "run_cpu_function": "encode_prompts",
-    "run_rocm_function": "encode_prompts",
-    "compile_only": false
+    "run_rocm_function": "encode_prompts"
 }
