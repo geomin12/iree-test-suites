@@ -102,6 +102,14 @@ class TestModelThreshold:
             elif (self.neural_net_name == "punet_int8_fp8" or self.neural_net_name == "punet_int8_fp16"):
                 # TODO: Investigate numerics failure without using the MI300 punet attention spec
                 self.rocm_compiler_flags.append(f"--iree-codegen-transform-dialect-library={iree_test_path_extension}/pkgci_test_suite/build_tools/external_test_suite/attention_and_matmul_spec_punet_mi300.mlir")
+
+            # specific configuration to fp16
+            self.rocm_pipeline_compiler_flags = data.get("rocm_pipeline_compiler_flags", [])
+            if self.rocm_pipeline_compiler_flags:
+                self.rocm_pipeline_compiler_flags.append("--iree-hal-target-backends=rocm")
+                self.rocm_pipeline_compiler_flags.append(f"--iree-hip-target={rocm_chip}")
+            self.pipeline_mlir = fetch_source_fixture(data.get("pipeline_mlir"), group=f"{self.model_name}_{self.neural_net_name}") if data.get("pipeline_mlir") else None
+            self.add_pipeline_module = data.get("add_pipeline_module", False)
             
 
     ###############################################################################
@@ -120,6 +128,15 @@ class TestModelThreshold:
             / Path(self.mlir.path.name).with_suffix(f".cpu.vmfb"),
         )
 
+        if self.pipeline_mlir:
+            VmfbManager.pipeline_cpu_vmfb = iree_compile(
+                self.pipeline_mlir,
+                self.cpu_compiler_flags,
+                Path(vmfb_dir)
+                / Path(vmfbs_path)
+                / Path(self.pipeline_mlir.path.name).with_suffix(f".cpu.vmfb"),
+            )
+
     @pytest.mark.depends(on=["test_compile_cpu"])
     def test_run_cpu_threshold(self):
         if self.compile_only:
@@ -131,6 +148,9 @@ class TestModelThreshold:
         args = self.cpu_threshold_args + self.common_rule_flags
         if self.real_weights:
             args.append(f"--parameters=model={self.real_weights.path}")
+
+        if self.add_pipeline_module:
+            args.append(f"--module={VmfbManager.pipeline_cpu_vmfb}")
 
         iree_run_module(
             VmfbManager.cpu_vmfb,
@@ -156,6 +176,15 @@ class TestModelThreshold:
             / Path(self.mlir.path.name).with_suffix(f".rocm_{rocm_chip}.vmfb"),
         )
 
+        if self.pipeline_mlir:
+            VmfbManager.pipeline_rocm_vmfb = iree_compile(
+                self.pipeline_mlir,
+                self.rocm_pipeline_compiler_flags,
+                Path(vmfb_dir)
+                / Path(vmfbs_path)
+                / Path(self.pipeline_mlir.path.name).with_suffix(f".rocm_{rocm_chip}.vmfb"),
+            )
+
     @pytest.mark.depends(on=["test_compile_rocm"])
     def test_run_rocm_threshold(self):
         if self.compile_only:
@@ -167,6 +196,9 @@ class TestModelThreshold:
         args = self.rocm_threshold_args + self.common_rule_flags
         if self.real_weights:
             args.append(f"--parameters=model={self.real_weights.path}")
+
+        if self.add_pipeline_module:
+            args.append(f"--module={VmfbManager.pipeline_rocm_vmfb}")
 
         return iree_run_module(
             VmfbManager.rocm_vmfb,
