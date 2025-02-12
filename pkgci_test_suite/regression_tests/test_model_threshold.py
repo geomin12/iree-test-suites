@@ -68,14 +68,12 @@ class TestModelThreshold:
             self.mlir = fetch_source_fixture(data.get("mlir"), group=f"{self.model_name}_{self.neural_net_name}") if data.get("mlir") else None
 
             # setting custom compiler for cpu and rocm
-            self.cpu_compiler_flags = data.get("cpu_compiler_flags")
-            if self.cpu_compiler_flags:
-                self.cpu_compiler_flags.append("--iree-hal-target-backends=llvm-cpu")
+            self.cpu_compiler_flags = data.get("cpu_compiler_flags", [])
+            self.cpu_compiler_flags.append("--iree-hal-target-backends=llvm-cpu")
 
-            self.rocm_compiler_flags = data.get("rocm_compiler_flags")
-            if self.rocm_compiler_flags:
-                self.rocm_compiler_flags.append("--iree-hal-target-backends=rocm")
-                self.rocm_compiler_flags.append(f"--iree-hip-target={rocm_chip}")
+            self.rocm_compiler_flags = data.get("rocm_compiler_flags" [])
+            self.rocm_compiler_flags.append("--iree-hal-target-backends=rocm")
+            self.rocm_compiler_flags.append(f"--iree-hip-target={rocm_chip}")
 
             # TODO: add comments, add README of JSON file options!!!
 
