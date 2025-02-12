@@ -86,7 +86,6 @@ class TestModelThreshold:
             self.run_rocm_function = data.get("run_rocm_function")
 
             # Custom configurations
-            self.include_run_module_args = data.get("include_run_module_args", False)
             self.compile_only = data.get("compile_only", False)
             self.cpu_run_test_expecting_to_fail = data.get("cpu_run_test_expecting_to_fail", False)
             self.rocm_run_test_expecting_to_fail = data.get("rocm_run_test_expecting_to_fail", False)
@@ -94,7 +93,7 @@ class TestModelThreshold:
             self.rocm_tests_only = data.get("rocm_tests_only", False)
 
             # specific configuration to unet fp16
-            if os.path.isfile(f"{iree_test_path_extension}/attention_and_matmul_spec_fp16_{sku}.mlir"):
+            if (self.neural_net_name == "unet_fp16" or self.neural_net_name == "unet_fp16_960_1024") and os.path.isfile(f"{iree_test_path_extension}/attention_and_matmul_spec_fp16_{sku}.mlir"):
                 self.rocm_compiler_flags.append(f"--iree-codegen-transform-dialect-library={iree_test_path_extension}/pkgci_test_suite/build_tools/external_test_suite/attention_and_matmul_spec_fp16_{sku}.mlir")
 
             # specific configuration to punet int8
@@ -128,9 +127,6 @@ class TestModelThreshold:
         
         if self.cpu_run_test_expecting_to_fail:
             pytest.xfail("Expected run to fail")
-
-        if self.include_run_module_args:
-            self.cpu_threshold_args.append(f"--module={VmfbManager.cpu_vmfb}")
 
         args = self.cpu_threshold_args + self.common_rule_flags
         if self.real_weights:
@@ -167,9 +163,6 @@ class TestModelThreshold:
         
         if self.rocm_run_test_expecting_to_fail:
             pytest.xfail("Expected run to fail")
-
-        if self.include_run_module_args:
-            self.rocm_threshold_args.append(f"--module={VmfbManager.rocm_vmfb}")
 
         args = self.rocm_threshold_args + self.common_rule_flags
         if self.real_weights:

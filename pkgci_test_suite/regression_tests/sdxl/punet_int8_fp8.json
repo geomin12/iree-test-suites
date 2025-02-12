@@ -1,4 +1,30 @@
 {
+    "inputs": [
+        {
+            "source": "https://sharkpublic.blob.core.windows.net/sharkpublic/sai/sdxl-punet/inference_input.0.bin",
+            "value": "1x4x128x128xf16"
+        },
+        {
+            "source": "https://sharkpublic.blob.core.windows.net/sharkpublic/sai/sdxl-punet/inference_input.1.bin",
+            "value": "1xf16"
+        },
+        {
+            "source": "https://sharkpublic.blob.core.windows.net/sharkpublic/sai/sdxl-punet/inference_input.2.bin",
+            "value": "2x64x2048xf16"
+        },
+        {
+            "source": "https://sharkpublic.blob.core.windows.net/sharkpublic/sai/sdxl-punet/inference_input.3.bin",
+            "value": "2x1280xf16"
+        },
+        {
+            "source": "https://sharkpublic.blob.core.windows.net/sharkpublic/sai/sdxl-punet/inference_input.4.bin",
+            "value": "2x6xf16"
+        },
+        {
+            "source": "https://sharkpublic.blob.core.windows.net/sharkpublic/sai/sdxl-punet/inference_input.5.bin",
+            "value": "1xf16"
+        }
+    ],
     "outputs": [
         {
             "source": "https://sharkpublic.blob.core.windows.net/sharkpublic/sai/sdxl-punet/11-13-2024/punet_fp8_out.0.bin",

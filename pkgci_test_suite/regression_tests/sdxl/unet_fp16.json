@@ -25,6 +25,7 @@
     ],
     "real_weights": "https://sharkpublic.blob.core.windows.net/sharkpublic/sai/sdxl-scheduled-unet/real_weights.irpa",
     "mlir": "https://sharkpublic.blob.core.windows.net/sharkpublic/sai/sdxl-scheduled-unet/model.mlir",
+    "pipeline_mlir": "https://sharkpublic.blob.core.windows.net/sharkpublic/sai/sdxl-scheduled-unet/sdxl_unet_pipeline_bench_f16.mlir",
     "cpu_compiler_flags": [
         "--iree-llvmcpu-target-cpu-features=host",
         "--iree-llvmcpu-fail-on-out-of-bounds-stack-allocation=false",
@@ -52,14 +53,14 @@
         "--iree-execution-model=async-external",
         "--iree-scheduling-dump-statistics-format=json",
         "--iree-scheduling-dump-statistics-file=compilation_info.json",
-        "--iree-preprocessing-pass-pipeline=builtin.module(iree-preprocessing-transpose-convolution-pipeline,iree-preprocessing-pad-to-intrinsics)",
+        "--iree-preprocessing-pass-pipeline=builtin.module(iree-preprocessing-transpose-convolution-pipeline,iree-preprocessing-pad-to-intrinsics)"
     ],
     "cpu_threshold_args": [
-        "--expected_f16_threshold=1.0f"
+        "--expected_f16_threshold=0.8f"
     ],
     "rocm_threshold_args": [
-        "--expected_f16_threshold=1.0f"
+        "--expected_f16_threshold=0.705f"
     ],
-    "run_cpu_function": "encode_prompts",
-    "run_rocm_function": "encode_prompts"
+    "run_cpu_function": "produce_image_latents",
+    "run_rocm_function": "produce_image_latents"
 }

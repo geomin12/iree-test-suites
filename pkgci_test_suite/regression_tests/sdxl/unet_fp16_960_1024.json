@@ -61,7 +61,6 @@
     "rocm_threshold_args": [
         "--expected_f16_threshold=0.705f"
     ],
-    "include_run_module_args": true,
     "run_cpu_function": "run_forward",
     "run_rocm_function": "run_forward"
 }
