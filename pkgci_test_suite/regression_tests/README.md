@@ -5,7 +5,17 @@
 
 ### How to run
 
-- Command to run a specific model and model layer
+- Setup
+```
+Venv stuff, add here
+```
+
+- Example command to run all model layers for a specific model
+```
+python pkgci_test_suite/regression_tests/run_model_tests.py --model sdxl
+```
+
+- Example command to run a specific model and model layer
 ```
 pytest pkgci_test_suite/regression_tests/test_model_threshold.py \
     -rpfE \
@@ -16,6 +26,7 @@ pytest pkgci_test_suite/regression_tests/test_model_threshold.py \
      --model-name sd3 \
      --neural-net-name vae
 ```
+
 
 ### Required and optional fields for the JSON model file
 

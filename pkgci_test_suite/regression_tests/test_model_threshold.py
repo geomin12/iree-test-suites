@@ -49,7 +49,6 @@ def common_run_flags_generation(input_list, output_list):
 
 
 class TestModelThreshold:
-
     @pytest.fixture(autouse = True, scope = "class")
     @classmethod
     def setup_class(self, pytestconfig):
@@ -61,13 +60,13 @@ class TestModelThreshold:
         with open(file_name ,'r') as file:
             data = json.load(file)
 
-            # retrieve source fixtures if available in JSON
+            # retrieving source fixtures if available in JSON file
             self.inputs = fetch_source_fixtures_for_run_flags(data.get("inputs"), self.model_name, self.neural_net_name) if data.get("inputs") else None
             self.outputs = fetch_source_fixtures_for_run_flags(data.get("outputs"), self.model_name, self.neural_net_name) if data.get("outputs") else None
             self.real_weights = fetch_source_fixture(data.get("real_weights"), group=f"{self.model_name}_{self.neural_net_name}") if data.get("real_weights") else None
             self.mlir = fetch_source_fixture(data.get("mlir"), group=f"{self.model_name}_{self.neural_net_name}") if data.get("mlir") else None
 
-            # setting custom compiler for cpu and rocm
+            # setting compiler options for cpu and rocm
             self.cpu_compiler_flags = data.get("cpu_compiler_flags", [])
             self.cpu_compiler_flags.append("--iree-hal-target-backends=llvm-cpu")
 
@@ -75,37 +74,35 @@ class TestModelThreshold:
             self.rocm_compiler_flags.append("--iree-hal-target-backends=rocm")
             self.rocm_compiler_flags.append(f"--iree-hip-target={rocm_chip}")
 
-            # TODO: add comments, add README of JSON file options!!!
-
+            # Setting input, output, and function call arguments
             self.common_rule_flags = common_run_flags_generation(self.inputs, self.outputs)
             self.cpu_threshold_args = data.get("cpu_threshold_args", [])
             self.rocm_threshold_args = data.get("rocm_threshold_args", [])
             self.run_cpu_function = data.get("run_cpu_function")
             self.run_rocm_function = data.get("run_rocm_function")
 
-            # Custom configurations
+            # Custom configurations for selecting tests to fail or ignoring certain tests
             self.compile_only = data.get("compile_only", False)
             self.cpu_run_test_expecting_to_fail = data.get("cpu_run_test_expecting_to_fail", False)
             self.rocm_run_test_expecting_to_fail = data.get("rocm_run_test_expecting_to_fail", False)
             self.rocm_compile_chip_expecting_to_fail = data.get("rocm_compile_chip_expecting_to_fail", [])
             self.rocm_tests_only = data.get("rocm_tests_only", False)
 
-            # specific configuration to unet fp16
+            # Custom configuration to unet fp16
             if (self.neural_net_name == "unet_fp16" or self.neural_net_name == "unet_fp16_960_1024") and os.path.isfile(f"{iree_test_path_extension}/attention_and_matmul_spec_fp16_{sku}.mlir"):
                 self.rocm_compiler_flags.append(f"--iree-codegen-transform-dialect-library={iree_test_path_extension}/pkgci_test_suite/build_tools/external_test_suite/attention_and_matmul_spec_fp16_{sku}.mlir")
 
-            # specific configuration to punet int8
+            # Custom configuration to punet int8
             if (self.neural_net_name == "punet_int8_fp8" or self.neural_net_name == "punet_int8_fp16") and os.path.isfile(f"{iree_test_path_extension}/pkgci_test_suite/build_tools/external_test_suite/attention_and_matmul_spec_punet_{sku}.mlir"):
                 self.rocm_compiler_flags.append(f"--iree-codegen-transform-dialect-library={iree_test_path_extension}/pkgci_test_suite/build_tools/external_test_suite/attention_and_matmul_spec_punet_{sku}.mlir")
             elif (self.neural_net_name == "punet_int8_fp8" or self.neural_net_name == "punet_int8_fp16"):
                 # TODO: Investigate numerics failure without using the MI300 punet attention spec
                 self.rocm_compiler_flags.append(f"--iree-codegen-transform-dialect-library={iree_test_path_extension}/pkgci_test_suite/build_tools/external_test_suite/attention_and_matmul_spec_punet_mi300.mlir")
 
-            # specific configuration to fp16
+            # Custom configuration to fp16 and adding secondary pipeline mlir
             self.rocm_pipeline_compiler_flags = data.get("rocm_pipeline_compiler_flags", [])
-            if self.rocm_pipeline_compiler_flags:
-                self.rocm_pipeline_compiler_flags.append("--iree-hal-target-backends=rocm")
-                self.rocm_pipeline_compiler_flags.append(f"--iree-hip-target={rocm_chip}")
+            self.rocm_pipeline_compiler_flags.append("--iree-hal-target-backends=rocm")
+            self.rocm_pipeline_compiler_flags.append(f"--iree-hip-target={rocm_chip}")
             self.pipeline_mlir = fetch_source_fixture(data.get("pipeline_mlir"), group=f"{self.model_name}_{self.neural_net_name}") if data.get("pipeline_mlir") else None
             self.add_pipeline_module = data.get("add_pipeline_module", False)
             
