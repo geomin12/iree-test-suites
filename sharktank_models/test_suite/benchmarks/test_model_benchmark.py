@@ -111,13 +111,17 @@ class TestModelBenchmark:
             self.function_run = data.get("function_run")
             self.benchmark_repetitions = data.get("benchmark_repetitions")
             self.benchmark_min_warmup_time = data.get("benchmark_min_warmup_time")
-            self.golden_time_tolerance_multiplier = data.get("golden_time_tolerance_multiplier").get(sku)
-            self.golden_time = data.get("golden_time").get(sku)
-            self.golden_dispatch = data.get("golden_dispatch").get(sku)
-            self.golden_size = data.get("golden_size").get(sku)
+            self.golden_time_tolerance_multiplier = data.get("golden_time_tolerance_multiplier", {}).get(sku)
+            self.golden_time = data.get("golden_time", {}).get(sku)
+            self.golden_dispatch = data.get("golden_dispatch", {}).get(sku)
+            self.golden_size = data.get("golden_size", {}).get(sku)
+            self.specific_rocm_chip_to_ignore = data.get("specific_rocm_chip_to_ignore", [])
 
     def test_rocm_benchmark(self):
         # Run the benchmark
+        if rocm_chip in self.specific_rocm_chip_to_ignore:
+            pytest.skip(f"Ignoring benchmark test for {self.model_name} {self.submodel_name} for chip {rocm_chip}")
+            
         directory_compile = f"{vmfb_dir}/{self.model_name}_{self.submodel_name}_vmfbs"
         directory = f"{artifacts_dir}/{self.model_name}_{self.submodel_name}"
 
@@ -134,9 +138,13 @@ class TestModelBenchmark:
 
         # run iree benchmark command
         ret_value, output = run_iree_command(exec_args)
-        benchmark_mean_time = job_summary_process(ret_value, output, self.model_name)
+        self.benchmark_mean_time = job_summary_process(ret_value, output, self.model_name)
+
+
+    @pytest.mark.depends(on=["test_rocm_benchmark"])
+    def test_golden_values(self):
         mean_line = (
-            f"{self.model_name} {self.submodel_name} benchmark time: {str(benchmark_mean_time)} ms"
+            f"{self.model_name} {self.submodel_name} benchmark time: {str(self.benchmark_mean_time)} ms"
             f" (golden time {self.golden_time} ms)"
         )
         logging.getLogger().info(mean_line)
@@ -144,7 +152,7 @@ class TestModelBenchmark:
         # Check all values are either <= than golden values for times and == for compilation statistics.
         # golden time check
         check.less_equal(
-            benchmark_mean_time, 
+            self.benchmark_mean_time, 
             self.golden_time * self.golden_time_tolerance_multiplier, 
             f"{self.model_name} {self.submodel_name} benchmark time should not regress more than a factor of {self.golden_time_tolerance_multiplier}"
         )

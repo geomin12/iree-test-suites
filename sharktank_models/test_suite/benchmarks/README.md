@@ -35,5 +35,6 @@ pytest sharktank_models/test_suite/benchmarks/test_model_benchmark.py \
 | golden_time                      | required | object | An object of golden times, where the key is the sku and the value is the golden time in ms, (ex: `{"mi250": 100}`)           |
 | golden_dispatch                  | required | object | An object of golden dispatches, where the key is the sku and the value is the golden dispatch count, (ex: `{"mi250": 1602}`) |
 | golden_size                      | required | object | An object of golden sizes, where the key is the sku and the value is the golden size in bytes, (ex: `{"mi250": 2000000}`)    |
+| specific_rocm_chip_to_ignore     | optional | array  | An array of chip values, where the benchmark tests will ignore the chips specified                                           |
 
 Please feel free to look at any JSON examples under a model directory (ex: sd3, sdxl)
