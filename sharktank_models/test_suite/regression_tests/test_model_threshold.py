@@ -113,7 +113,7 @@ class TestModelThreshold:
             self.cpu_compiler_flags,
             Path(vmfb_dir)
             / Path(vmfbs_path)
-            / Path(self.mlir.path.name).with_suffix(f".cpu.vmfb"),
+            / Path('model').with_suffix(f".cpu.vmfb"),
         )
 
         if self.pipeline_mlir:
@@ -122,7 +122,7 @@ class TestModelThreshold:
                 self.cpu_compiler_flags,
                 Path(vmfb_dir)
                 / Path(vmfbs_path)
-                / Path(self.pipeline_mlir.path.name).with_suffix(f".cpu.vmfb"),
+                / Path('pipeline_model').with_suffix(f".cpu.vmfb"),
             )
 
     @pytest.mark.depends(on=["test_compile_cpu"])
@@ -161,7 +161,7 @@ class TestModelThreshold:
             self.rocm_compiler_flags,
             Path(vmfb_dir)
             / Path(vmfbs_path)
-            / Path(self.mlir.path.name).with_suffix(f".rocm_{rocm_chip}.vmfb"),
+            / Path('model').with_suffix(f".rocm_{rocm_chip}.vmfb"),
         )
 
         if self.pipeline_mlir:
@@ -170,7 +170,7 @@ class TestModelThreshold:
                 self.rocm_pipeline_compiler_flags,
                 Path(vmfb_dir)
                 / Path(vmfbs_path)
-                / Path(self.pipeline_mlir.path.name).with_suffix(f".rocm_{rocm_chip}.vmfb"),
+                / Path('pipeline_model').with_suffix(f".rocm_{rocm_chip}.vmfb"),
             )
 
     @pytest.mark.depends(on=["test_compile_rocm"])

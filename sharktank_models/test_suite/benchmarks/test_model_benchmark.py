@@ -93,7 +93,31 @@ def decode_output(bench_lines):
         )
     return benchmark_results
 
-# optional case: compile? if it's not a part of threshold tests, maybe add a feature where it can download and compile
+def compile_iree_method(mlir_file_path, compile_flags, compiled_file_name):
+    exec_args = [
+        "iree-compile",
+        f"",
+        "--iree-hal-target-backends=rocm",
+        f"--iree-hip-target={rocm_chip}",
+    ] + compile_flags + [
+        "-o",
+        f"{vmfb_dir}/{compiled_file_name}/{compiled_file_name}_rocm.vmfb"
+    ]
+    ret_value, stdout = run_iree_command(exec_args)
+    return ret_value, stdout
+
+def e2e_iree_benchmark_module_args(modules, compiled_file_name):
+     exec_args = [
+        "iree-benchmark-module",
+        f"--device=hip",
+        "--device_allocator=caching"
+    ]
+
+    for module in modules:
+        exec_args.append(f"--module={vmfb_dir}/{module}_vmfbs/model.rocm_{rocm_chip}.vmfb")
+        exec_args.append(f"--parameters=model={artifacts_dir}/{module}/real_weights.irpa")
+    exec_args.append(f"--module={vmfb_dir}/{compiled_file_name}/{compiled_file_name}_rocm.vmfb")
+    return exec_args
 
 class TestModelBenchmark:
     @pytest.fixture(autouse = True)
@@ -116,12 +140,25 @@ class TestModelBenchmark:
             self.golden_dispatch = data.get("golden_dispatch", {}).get(sku)
             self.golden_size = data.get("golden_size", {}).get(sku)
             self.specific_rocm_chip_to_ignore = data.get("specific_rocm_chip_to_ignore", [])
+            self.real_weights_file_name = data.get("real_weights_file_name", "real_weights.irpa")
+
+            # custom configurations related to e2e testing
+            self.compilation_required = data.get("compilation_required", False)
+            self.compiled_file_name = data.get("compiled_file_name")
+            self.compile_flags = data.get("compile_flags", [])
+            self.mlir_file_path = data.get("mlir_file_path", "")
+            self.modules = data.get("modules", [])
 
     def test_rocm_benchmark(self):
         # Run the benchmark
         if rocm_chip in self.specific_rocm_chip_to_ignore:
             pytest.skip(f"Ignoring benchmark test for {self.model_name} {self.submodel_name} for chip {rocm_chip}")
-            
+
+        if self.compilation_required:
+            ret_value, stdout = compile_iree_method(self.mlir_file_path, self.compile_flags, self.compiled_file_name)
+            if ret_value == 1:
+                return 1, stdout
+
         directory_compile = f"{vmfb_dir}/{self.model_name}_{self.submodel_name}_vmfbs"
         directory = f"{artifacts_dir}/{self.model_name}_{self.submodel_name}"
 
@@ -130,61 +167,74 @@ class TestModelBenchmark:
             f"--device=hip",
             "--device_allocator=caching",
             f"--module={directory_compile}/model.rocm_{rocm_chip}.vmfb",
-            f"--parameters=model={directory}/real_weights.irpa",
+            f"--parameters=model={directory}/{self.real_weights_file_name}",
             f"--function={self.function_run}",
             f"--benchmark_repetitions={self.benchmark_repetitions}",
             f"--benchmark_min_warmup_time={self.benchmark_min_warmup_time}",
         ] + get_input_list(self.inputs)
+        
+        # Indicating it's an e2e test
+        if self.modules:
+            exec_args = e2e_iree_benchmark_module_args(self.modules, self.compiled_file_name)
+            exec_args += [
+                f"--function={self.function_run}",
+                f"--benchmark_repetitions={self.benchmark_repetitions}"
+                f"--benchmark_min_warmup_time={self.benchmark_min_warmup_time}"
+            ] + get_input_list(self.inputs)
+            
+            directory_compile = f"{vmfb_dir}/{compiled_file_name}/{compiled_file_name}_rocm.vmfb"
+
 
         # run iree benchmark command
         ret_value, output = run_iree_command(exec_args)
-        self.benchmark_mean_time = job_summary_process(ret_value, output, self.model_name)
+        benchmark_mean_time = job_summary_process(ret_value, output, self.model_name)
 
-
-    @pytest.mark.depends(on=["test_rocm_benchmark"])
-    def test_golden_values(self):
-        mean_line = (
-            f"{self.model_name} {self.submodel_name} benchmark time: {str(self.benchmark_mean_time)} ms"
-            f" (golden time {self.golden_time} ms)"
-        )
-        logging.getLogger().info(mean_line)
-
-        # Check all values are either <= than golden values for times and == for compilation statistics.
         # golden time check
-        check.less_equal(
-            self.benchmark_mean_time, 
-            self.golden_time * self.golden_time_tolerance_multiplier, 
-            f"{self.model_name} {self.submodel_name} benchmark time should not regress more than a factor of {self.golden_time_tolerance_multiplier}"
-        )
+        if self.golden_time:
+            mean_line = (
+                f"{self.model_name} {self.submodel_name} benchmark time: {str(benchmark_mean_time)} ms"
+                f" (golden time {self.golden_time} ms)"
+            )
+            logging.getLogger().info(mean_line)
+
+            # Check all values are either <= than golden values for times and == for compilation statistics.
+            # golden time check
+            check.less_equal(
+                benchmark_mean_time, 
+                self.golden_time * self.golden_time_tolerance_multiplier, 
+                f"{self.model_name} {self.submodel_name} benchmark time should not regress more than a factor of {self.golden_time_tolerance_multiplier}"
+            )
         
         # golden dispatch check
-        with open(f"{directory_compile}/compilation_info.json", "r") as file:
-            comp_stats = json.load(file)
-        dispatch_count = int(
-            comp_stats["stream-aggregate"]["execution"]["dispatch-count"]
-        )
-        compilation_line = (
-            f"{self.model_name} {self.submodel_name} dispatch count: {dispatch_count}"
-            f" (golden dispatch count {self.golden_dispatch})"
-        )
-        logging.getLogger().info(compilation_line)
-        check.less_equal(
-            dispatch_count,
-            self.golden_dispatch,
-            f"{self.model_name} {self.submodel_name} dispatch count should not regress"
-        )
+        if self.golden_dispatch:
+            with open(f"{directory_compile}/compilation_info.json", "r") as file:
+                comp_stats = json.load(file)
+            dispatch_count = int(
+                comp_stats["stream-aggregate"]["execution"]["dispatch-count"]
+            )
+            compilation_line = (
+                f"{self.model_name} {self.submodel_name} dispatch count: {dispatch_count}"
+                f" (golden dispatch count {self.golden_dispatch})"
+            )
+            logging.getLogger().info(compilation_line)
+            check.less_equal(
+                dispatch_count,
+                self.golden_dispatch,
+                f"{self.model_name} {self.submodel_name} dispatch count should not regress"
+            )
         
         # golden size check
-        module_path = f"{directory_compile}/model.rocm_{rocm_chip}.vmfb"
-        binary_size = Path(module_path).stat().st_size
-        compilation_line = (
-            f"{self.model_name} {self.submodel_name} binary size: {binary_size} bytes"
-            f" (golden binary size {self.golden_size} bytes)"
-        )
-        logging.getLogger().info(compilation_line)
+        if self.golden_size:
+            module_path = f"{directory_compile}/model.rocm_{rocm_chip}.vmfb"
+            binary_size = Path(module_path).stat().st_size
+            compilation_line = (
+                f"{self.model_name} {self.submodel_name} binary size: {binary_size} bytes"
+                f" (golden binary size {self.golden_size} bytes)"
+            )
+            logging.getLogger().info(compilation_line)
 
-        check.less_equal(
-            binary_size,
-            self.golden_size,
-            f"{self.model_name} {self.submodel_name} binary size should not get bigger"
-        )
+            check.less_equal(
+                binary_size,
+                self.golden_size,
+                f"{self.model_name} {self.submodel_name} binary size should not get bigger"
+            )
