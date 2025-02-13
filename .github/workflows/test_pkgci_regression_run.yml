@@ -92,7 +92,7 @@ jobs:
         if: "!cancelled()"
         run: |
           source ${VENV_DIR}/bin/activate
-          pytest ./pkgci_test_suite/regression_tests/sdxl \
+          pytest ./sharktank_models/test_suite/regression_tests/sdxl \
             -k ${{ matrix.backend }} \
             -rpfE \
             --capture=no \
@@ -107,7 +107,7 @@ jobs:
         if: "!cancelled()"
         run: |
           source ${VENV_DIR}/bin/activate
-          pytest ./pkgci_test_suite/regression_tests/sd3 \
+          pytest ./sharktank_models/test_suite/regression_tests/sd3 \
             -k ${{ matrix.backend }} \
             -rpfE \
             --capture=no \

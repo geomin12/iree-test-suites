@@ -8,12 +8,18 @@ parser.add_argument("-m", "--model", type=str)
 args = parser.parse_args()
 model = args.model
 
-for filename in os.listdir(f"./pkgci_test_suite/regression_tests/{model}"):
+"""
+This is temporary, you could do this in the GH action in order to display each actual test: https://github.com/orgs/community/discussions/58007
+
+Will evaluate during GH action implementation
+"""
+
+for filename in os.listdir(f"./sharktank_models/test_suite/regression_tests/{model}"):
     if ".json" in filename:
         submodel_name = filename.split(".")[0]
         command = [
             "pytest",
-            "./pkgci_test_suite/regression_tests/test_model_threshold.py",
+            "./sharktank_models/test_suite/regression_tests/test_model_threshold.py",
             "-rpFe",
             "--log-cli-level=info",
             "--capture=no",

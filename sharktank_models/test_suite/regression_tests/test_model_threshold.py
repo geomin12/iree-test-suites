@@ -55,7 +55,7 @@ class TestModelThreshold:
         self.model_name = pytestconfig.getoption("model_name")
         self.submodel_name = pytestconfig.getoption("submodel_name")
 
-        file_name = f"{Path.cwd()}/pkgci_test_suite/regression_tests/{self.model_name}/{self.submodel_name}.json"
+        file_name = f"{Path.cwd()}/sharktank_models/test_suite/regression_tests/{self.model_name}/{self.submodel_name}.json"
 
         with open(file_name ,'r') as file:
             data = json.load(file)
