@@ -13,6 +13,7 @@ import json
 from pathlib import Path
 import tabulate
 from pytest_check import check
+import pytest
 
 vmfb_dir = os.getenv("TEST_OUTPUT_ARTIFACTS", default=Path.cwd())
 benchmark_dir = os.path.dirname(os.path.realpath(__file__))
@@ -52,7 +53,7 @@ def get_input_list(ls):
     
     return input_list
 
-def job_summary_process(ret_value, output. model_name):
+def job_summary_process(ret_value, output, model_name):
     if ret_value == 1:
         # Output should have already been logged earlier.
         logging.getLogger().error(f"Running {model_name} ROCm benchmark failed. Exiting.")
@@ -63,6 +64,34 @@ def job_summary_process(ret_value, output. model_name):
     logging.getLogger().info(benchmark_results)
     benchmark_mean_time = float(benchmark_results[10].time.split()[0])
     return benchmark_mean_time
+
+BenchmarkResult = namedtuple(
+    "BenchmarkResult", "benchmark_name time cpu_time iterations user_counters"
+)
+
+def decode_output(bench_lines):
+    benchmark_results = []
+    for line in bench_lines:
+        split = line.split()
+        if len(split) == 0:
+            continue
+        benchmark_name = split[0]
+        time = " ".join(split[1:3])
+        cpu_time = " ".join(split[3:5])
+        iterations = split[5]
+        user_counters = None
+        if len(split) > 5:
+            user_counters = split[6]
+        benchmark_results.append(
+            BenchmarkResult(
+                benchmark_name=benchmark_name,
+                time=time,
+                cpu_time=cpu_time,
+                iterations=iterations,
+                user_counters=user_counters,
+            )
+        )
+    return benchmark_results
 
 # optional case: compile? if it's not a part of threshold tests, maybe add a feature where it can download and compile
 
@@ -107,7 +136,7 @@ class TestModelBenchmark:
         ret_value, output = run_iree_command(exec_args)
         benchmark_mean_time = job_summary_process(ret_value, output, self.model_name)
         mean_line = (
-            f"{self.model_name} {self.submodel_name} benchmark Time: {str(benchmark_mean_time)} ms"
+            f"{self.model_name} {self.submodel_name} benchmark time: {str(benchmark_mean_time)} ms"
             f" (golden time {self.golden_time} ms)"
         )
         logging.getLogger().info(mean_line)
@@ -115,15 +144,10 @@ class TestModelBenchmark:
         # Check all values are either <= than golden values for times and == for compilation statistics.
         # golden time check
         check.less_equal(
-            benchmark_unet_mean_time, 
+            benchmark_mean_time, 
             self.golden_time * self.golden_time_tolerance_multiplier, 
             f"{self.model_name} {self.submodel_name} benchmark time should not regress more than a factor of {self.golden_time_tolerance_multiplier}"
         )
-        compilation_line = (
-            f"{self.model_name} {self.submodel_name} dispatch Count: {dispatch_count}"
-            f" (golden dispatch count {self.golden_dispatch})"
-        )
-        logging.getLogger().info(compilation_line)
         
         # golden dispatch check
         with open(f"{directory_compile}/compilation_info.json", "r") as file:
@@ -131,6 +155,11 @@ class TestModelBenchmark:
         dispatch_count = int(
             comp_stats["stream-aggregate"]["execution"]["dispatch-count"]
         )
+        compilation_line = (
+            f"{self.model_name} {self.submodel_name} dispatch count: {dispatch_count}"
+            f" (golden dispatch count {self.golden_dispatch})"
+        )
+        logging.getLogger().info(compilation_line)
         check.less_equal(
             dispatch_count,
             self.golden_dispatch,
@@ -141,7 +170,7 @@ class TestModelBenchmark:
         module_path = f"{directory_compile}/model.rocm_{rocm_chip}.vmfb"
         binary_size = Path(module_path).stat().st_size
         compilation_line = (
-            f"{self.model_name} {self.submodel_name} binary Size: {binary_size} bytes"
+            f"{self.model_name} {self.submodel_name} binary size: {binary_size} bytes"
             f" (golden binary size {self.golden_size} bytes)"
         )
         logging.getLogger().info(compilation_line)
