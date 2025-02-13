@@ -64,5 +64,8 @@
     ],
     "run_rocm_function": "main",
     "rocm_tests_only": true,
-    "rocm_compile_chip_expecting_to_fail": ["gfx90a"]
+    "rocm_compile_chip_expecting_to_fail": ["gfx90a"],
+    "tuner_file": {
+        "mi300": "sharktank_models/test_suite/build_tools/external_test_suite/attention_and_matmul_spec_punet_mi300.mlir"
+    }
 }

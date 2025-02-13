@@ -67,5 +67,8 @@
     ],
     "run_cpu_function": "produce_image_latents",
     "run_rocm_function": "produce_image_latents",
-    "add_pipeline_module": true
+    "add_pipeline_module": true,
+    "tuner_file": {
+        "mi308": "sharktank_models/test_suite/build_tools/external_test_suite/attention_and_matmul_spec_unet_fp16_mi308.mlir"
+    }
 }

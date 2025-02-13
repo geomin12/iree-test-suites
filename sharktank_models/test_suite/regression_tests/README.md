@@ -1,16 +1,19 @@
 ## Regression tests
 
 ### Adding your own model
-- To add your own model, create a directory under `regression_tests` and add JSON files that correspond to the model layers. Please follow the [JSON file schema in this README file](#required-and-optional-fields-for-the-json-model-file)
+
+- To add your own model, create a directory under `regression_tests` and add JSON files that correspond to the submodels. Please follow the [JSON file schema in this README file](#required-and-optional-fields-for-the-json-model-file)
 
 ### How to run
 
-- Example command to run all model layers for a specific model
+- Example command to run all submodels for a specific model
+
 ```
 python sharktank_models/test_suite/regression_tests/run_all_submodels.py --model sdxl
 ```
 
 - Example command to run a specific model and submodel
+
 ```
 pytest sharktank_models/test_suite/regression_tests/test_model_threshold.py \
     -rpfE \
@@ -21,7 +24,6 @@ pytest sharktank_models/test_suite/regression_tests/test_model_threshold.py \
     --model-name sd3 \
     --submodel-name vae
 ```
-
 
 ### Required and optional fields for the JSON model file
 
@@ -45,5 +47,6 @@ pytest sharktank_models/test_suite/regression_tests/test_model_threshold.py \
 | rocm_compile_chip_expecting_to_fail | optional | array   | If an array is passed in, the ROCM compilation tests will fail on the specified chip, ex: `["gfx90a"]`                                           |
 | compile_only                        | optional | boolean | If true, only the compilation tests will run                                                                                                     |
 | add_pipeline_module                 | optional | boolean | If true, the <b>pipeline mlir</b> module will be added to the `iree_run_module` as an argument                                                   |
+| tuner_file                          | optional | dict    | Adds a `iree-codegen-transform-dialect-library `ROCM compiler flag for a SKU-specific tuner file (ex: `{"mi308": "{path_to_tuner_file}"}`)         |
 
 Please feel free to look at any JSON examples under a model directory (ex: sd3, sdxl)

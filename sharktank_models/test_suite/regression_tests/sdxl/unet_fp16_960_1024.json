@@ -62,5 +62,8 @@
         "--expected_f16_threshold=0.705f"
     ],
     "run_cpu_function": "run_forward",
-    "run_rocm_function": "run_forward"
+    "run_rocm_function": "run_forward",
+    "tuner_file": {
+        "mi308": "sharktank_models/test_suite/build_tools/external_test_suite/attention_and_matmul_spec_unet_fp16_mi308.mlir"
+    }
 }

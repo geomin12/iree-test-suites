@@ -15,7 +15,6 @@ import json
 rocm_chip = os.getenv("ROCM_CHIP", default="gfx942")
 vmfb_dir = os.getenv("TEST_OUTPUT_ARTIFACTS", default=Path.cwd()) 
 sku = os.getenv("SKU", default="mi300")
-iree_test_path_extension = os.getenv("IREE_TEST_PATH_EXTENSION", default=Path.cwd())
 
 # Helper methods
 def fetch_source_fixtures_for_run_flags(inference_list, model_name, submodel_name):
@@ -49,7 +48,7 @@ def common_run_flags_generation(input_list, output_list):
 
 
 class TestModelThreshold:
-    @pytest.fixture(autouse = True, scope = "class")
+    @pytest.fixture(autouse = True)
     @classmethod
     def setup_class(self, pytestconfig):
         self.model_name = pytestconfig.getoption("model_name")
@@ -88,16 +87,10 @@ class TestModelThreshold:
             self.rocm_compile_chip_expecting_to_fail = data.get("rocm_compile_chip_expecting_to_fail", [])
             self.rocm_tests_only = data.get("rocm_tests_only", False)
 
-            # Custom configuration to unet fp16
-            if (self.submodel_name == "unet_fp16" or self.submodel_name == "unet_fp16_960_1024") and os.path.isfile(f"{iree_test_path_extension}/attention_and_matmul_spec_fp16_{sku}.mlir"):
-                self.rocm_compiler_flags.append(f"--iree-codegen-transform-dialect-library={iree_test_path_extension}/pkgci_test_suite/build_tools/external_test_suite/attention_and_matmul_spec_fp16_{sku}.mlir")
-
-            # Custom configuration to punet int8
-            if (self.submodel_name == "punet_int8_fp8" or self.submodel_name == "punet_int8_fp16") and os.path.isfile(f"{iree_test_path_extension}/pkgci_test_suite/build_tools/external_test_suite/attention_and_matmul_spec_punet_{sku}.mlir"):
-                self.rocm_compiler_flags.append(f"--iree-codegen-transform-dialect-library={iree_test_path_extension}/pkgci_test_suite/build_tools/external_test_suite/attention_and_matmul_spec_punet_{sku}.mlir")
-            elif (self.submodel_name == "punet_int8_fp8" or self.submodel_name == "punet_int8_fp16"):
-                # TODO: Investigate numerics failure without using the MI300 punet attention spec
-                self.rocm_compiler_flags.append(f"--iree-codegen-transform-dialect-library={iree_test_path_extension}/pkgci_test_suite/build_tools/external_test_suite/attention_and_matmul_spec_punet_mi300.mlir")
+            # Custom configuration for a tuner file
+            self.tuner_file = data.get("tuner_file", {})
+            if sku in self.tuner_file:
+                self.rocm_compiler_flags.append(f"--iree-codegen-transform-dialect-library={Path.cwd()}/{self.tuner_file.get(sku)}")
 
             # Custom configuration to fp16 and adding secondary pipeline mlir
             self.rocm_pipeline_compiler_flags = data.get("rocm_pipeline_compiler_flags", [])
