@@ -20,7 +20,7 @@ def pytest_addoption(parser):
         default=""
     )
     parser.addoption(
-        "--neural-net-name", 
+        "--submodel-name", 
         action="store", 
         type=str, 
         default=""

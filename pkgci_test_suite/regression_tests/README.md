@@ -12,7 +12,7 @@ Venv stuff, add here
 
 - Example command to run all model layers for a specific model
 ```
-python pkgci_test_suite/regression_tests/run_model_tests.py --model sdxl
+python pkgci_test_suite/regression_tests/run_all_submodels.py --model sdxl
 ```
 
 - Example command to run a specific model and model layer
@@ -23,8 +23,8 @@ pytest pkgci_test_suite/regression_tests/test_model_threshold.py \
     --capture=no \
     --timeout=600 \
     --durations=0 \
-     --model-name sd3 \
-     --neural-net-name vae
+    --model-name sd3 \
+    --neural-net-name vae
 ```
 
 

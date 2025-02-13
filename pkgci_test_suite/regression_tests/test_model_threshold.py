@@ -18,12 +18,12 @@ sku = os.getenv("SKU", default="mi300")
 iree_test_path_extension = os.getenv("IREE_TEST_PATH_EXTENSION", default=Path.cwd())
 
 # Helper methods
-def fetch_source_fixtures_for_run_flags(inference_list, model_name, neural_net_name):
+def fetch_source_fixtures_for_run_flags(inference_list, model_name, submodel_name):
     result = []
     for entry in inference_list:
         source = entry.get("source")
         value = entry.get("value")
-        source_fixture = fetch_source_fixture(source, group=f"{model_name}_{neural_net_name}")
+        source_fixture = fetch_source_fixture(source, group=f"{model_name}_{submodel_name}")
         result.append([source_fixture.path, value])
     
     return result
@@ -53,24 +53,24 @@ class TestModelThreshold:
     @classmethod
     def setup_class(self, pytestconfig):
         self.model_name = pytestconfig.getoption("model_name")
-        self.neural_net_name = pytestconfig.getoption("neural_net_name")
+        self.submodel_name = pytestconfig.getoption("submodel_name")
 
-        file_name = f"{Path.cwd()}/pkgci_test_suite/regression_tests/{self.model_name}/{self.neural_net_name}.json"
+        file_name = f"{Path.cwd()}/pkgci_test_suite/regression_tests/{self.model_name}/{self.submodel_name}.json"
 
         with open(file_name ,'r') as file:
             data = json.load(file)
 
             # retrieving source fixtures if available in JSON file
-            self.inputs = fetch_source_fixtures_for_run_flags(data.get("inputs"), self.model_name, self.neural_net_name) if data.get("inputs") else None
-            self.outputs = fetch_source_fixtures_for_run_flags(data.get("outputs"), self.model_name, self.neural_net_name) if data.get("outputs") else None
-            self.real_weights = fetch_source_fixture(data.get("real_weights"), group=f"{self.model_name}_{self.neural_net_name}") if data.get("real_weights") else None
-            self.mlir = fetch_source_fixture(data.get("mlir"), group=f"{self.model_name}_{self.neural_net_name}") if data.get("mlir") else None
+            self.inputs = fetch_source_fixtures_for_run_flags(data.get("inputs"), self.model_name, self.submodel_name) if data.get("inputs") else None
+            self.outputs = fetch_source_fixtures_for_run_flags(data.get("outputs"), self.model_name, self.submodel_name) if data.get("outputs") else None
+            self.real_weights = fetch_source_fixture(data.get("real_weights"), group=f"{self.model_name}_{self.submodel_name}") if data.get("real_weights") else None
+            self.mlir = fetch_source_fixture(data.get("mlir"), group=f"{self.model_name}_{self.submodel_name}") if data.get("mlir") else None
 
             # setting compiler options for cpu and rocm
             self.cpu_compiler_flags = data.get("cpu_compiler_flags", [])
             self.cpu_compiler_flags.append("--iree-hal-target-backends=llvm-cpu")
 
-            self.rocm_compiler_flags = data.get("rocm_compiler_flags" [])
+            self.rocm_compiler_flags = data.get("rocm_compiler_flags", [])
             self.rocm_compiler_flags.append("--iree-hal-target-backends=rocm")
             self.rocm_compiler_flags.append(f"--iree-hip-target={rocm_chip}")
 
@@ -89,13 +89,13 @@ class TestModelThreshold:
             self.rocm_tests_only = data.get("rocm_tests_only", False)
 
             # Custom configuration to unet fp16
-            if (self.neural_net_name == "unet_fp16" or self.neural_net_name == "unet_fp16_960_1024") and os.path.isfile(f"{iree_test_path_extension}/attention_and_matmul_spec_fp16_{sku}.mlir"):
+            if (self.submodel_name == "unet_fp16" or self.submodel_name == "unet_fp16_960_1024") and os.path.isfile(f"{iree_test_path_extension}/attention_and_matmul_spec_fp16_{sku}.mlir"):
                 self.rocm_compiler_flags.append(f"--iree-codegen-transform-dialect-library={iree_test_path_extension}/pkgci_test_suite/build_tools/external_test_suite/attention_and_matmul_spec_fp16_{sku}.mlir")
 
             # Custom configuration to punet int8
-            if (self.neural_net_name == "punet_int8_fp8" or self.neural_net_name == "punet_int8_fp16") and os.path.isfile(f"{iree_test_path_extension}/pkgci_test_suite/build_tools/external_test_suite/attention_and_matmul_spec_punet_{sku}.mlir"):
+            if (self.submodel_name == "punet_int8_fp8" or self.submodel_name == "punet_int8_fp16") and os.path.isfile(f"{iree_test_path_extension}/pkgci_test_suite/build_tools/external_test_suite/attention_and_matmul_spec_punet_{sku}.mlir"):
                 self.rocm_compiler_flags.append(f"--iree-codegen-transform-dialect-library={iree_test_path_extension}/pkgci_test_suite/build_tools/external_test_suite/attention_and_matmul_spec_punet_{sku}.mlir")
-            elif (self.neural_net_name == "punet_int8_fp8" or self.neural_net_name == "punet_int8_fp16"):
+            elif (self.submodel_name == "punet_int8_fp8" or self.submodel_name == "punet_int8_fp16"):
                 # TODO: Investigate numerics failure without using the MI300 punet attention spec
                 self.rocm_compiler_flags.append(f"--iree-codegen-transform-dialect-library={iree_test_path_extension}/pkgci_test_suite/build_tools/external_test_suite/attention_and_matmul_spec_punet_mi300.mlir")
 
@@ -103,7 +103,7 @@ class TestModelThreshold:
             self.rocm_pipeline_compiler_flags = data.get("rocm_pipeline_compiler_flags", [])
             self.rocm_pipeline_compiler_flags.append("--iree-hal-target-backends=rocm")
             self.rocm_pipeline_compiler_flags.append(f"--iree-hip-target={rocm_chip}")
-            self.pipeline_mlir = fetch_source_fixture(data.get("pipeline_mlir"), group=f"{self.model_name}_{self.neural_net_name}") if data.get("pipeline_mlir") else None
+            self.pipeline_mlir = fetch_source_fixture(data.get("pipeline_mlir"), group=f"{self.model_name}_{self.submodel_name}") if data.get("pipeline_mlir") else None
             self.add_pipeline_module = data.get("add_pipeline_module", False)
             
 
@@ -114,7 +114,7 @@ class TestModelThreshold:
         if self.rocm_tests_only:
             pytest.skip("Only ROCM tests are being run, skipping CPU tests...")
 
-        vmfbs_path = f"{self.model_name}_{self.neural_net_name}_vmfbs"
+        vmfbs_path = f"{self.model_name}_{self.submodel_name}_vmfbs"
         VmfbManager.cpu_vmfb = iree_compile(
             self.mlir,
             self.cpu_compiler_flags,
@@ -160,9 +160,9 @@ class TestModelThreshold:
 
     def test_compile_rocm(self):
         if rocm_chip in self.rocm_compile_chip_expecting_to_fail:
-            pytest.xfail(f"Expecting {rocm_chip} compilation to fail for {self.neural_net_name}")
+            pytest.xfail(f"Expecting {rocm_chip} compilation to fail for {self.submodel_name}")
 
-        vmfbs_path = f"{self.model_name}_{self.neural_net_name}_vmfbs"
+        vmfbs_path = f"{self.model_name}_{self.submodel_name}_vmfbs"
         VmfbManager.rocm_vmfb = iree_compile(
             self.mlir,
             self.rocm_compiler_flags,
