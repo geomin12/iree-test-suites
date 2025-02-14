@@ -95,8 +95,7 @@ def compile_iree_method(mlir_file_path, compile_flags, compiled_file_name):
         f"{Path.cwd()}/{mlir_file_path}",
         "--iree-hal-target-backends=rocm",
         f"--iree-hip-target={rocm_chip}",
-    ] + 
-    compile_flags + [
+    ] + compile_flags + [
         "-o",
         f"{vmfb_dir}/{compiled_file_name}_rocm.vmfb"
     ]

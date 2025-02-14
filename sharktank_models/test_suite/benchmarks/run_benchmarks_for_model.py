@@ -22,7 +22,7 @@ for filename in os.listdir(f"./sharktank_models/test_suite/benchmarks/{model}"):
             "./sharktank_models/test_suite/benchmarks/test_model_benchmark.py",
             "--log-cli-level=info",
             "--timeout=600",
-            "--retries 7",
+            "--retries=7",
             f"--model-name={model}",
             f"--submodel-name={submodel_name}"
         ]
