@@ -52,8 +52,6 @@ def job_summary_process(ret_value, output, model_name):
     if ret_value == 1:
         # Output should have already been logged earlier.
         pytest.fail(f"Running {model_name} benchmark failed. Exiting.")
-    logger.info(output)
-    logger.info(ret_value)
     output_json = json.loads(output)
     benchmark_mean_time = decode_output(output_json)
     if benchmark_mean_time == -1:
