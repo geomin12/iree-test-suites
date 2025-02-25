@@ -1,3 +1,9 @@
+# Copyright 2025 The IREE Authors
+#
+# Licensed under the Apache License v2.0 with LLVM Exceptions.
+# See https://llvm.org/LICENSE.txt for license information.
+# SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+
 import pytest
 from model_benchmark_run import ModelBenchmarkRunItem
 from pathlib import Path
@@ -7,11 +13,11 @@ import os
 import json
 import tabulate
 
+THIS_DIR = Path(__file__).parent
 backend = os.getenv("BACKEND", default="gfx942")
 sku = os.getenv("SKU", default="mi300")
 
 logger = logging.getLogger(__name__)
-THIS_DIR = Path(__file__).parent
 
 def pytest_sessionstart(session):
     with open("job_summary.md", "a") as job_summary, open("job_summary.json", "w+") as content:
@@ -39,7 +45,7 @@ def pytest_sessionfinish(session, exitstatus):
     logger.info("Pytest benchmark test session has finished")
 
 def pytest_collect_file(parent, file_path):
-    if file_path.suffix == ".json" and "job_summary" not in file_path.name:
+    if file_path.suffix == ".json" and "job_summary" not in file_path.name and "benchmarks" in str(THIS_DIR):
         return SharkTankModelBenchmarkTests.from_parent(parent, path=file_path)
 
 @dataclass(frozen = True)

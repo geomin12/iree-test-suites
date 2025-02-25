@@ -7,7 +7,10 @@
 ### How to run the benchmark tests
 
 ```
-pytest --log-cli-level=info --timeout=600 --retries=7 sharktank_models/benchmarks/
+pytest sharktank_models/benchmarks/ \
+    --log-cli-level=info \
+    --timeout=600 \
+    --retries=7 
 ```
 
 ### Required and optional fields for the JSON model file

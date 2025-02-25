@@ -17,20 +17,6 @@ PARENT_DIR = Path(__file__).parent.parent
 vmfb_dir = os.getenv("TEST_OUTPUT_ARTIFACTS", default=str(PARENT_DIR))
 backend = os.getenv("BACKEND", default="gfx942")
 sku = os.getenv("SKU", default="mi300")
-model_name = os.getenv("MODEL_TO_TEST", default="sdxl")
-submodel_name = os.getenv("SUBMODEL_TO_TEST", default="*")
-
-SUBMODEL_FOLDER_PATH = THIS_DIR / f"{model_name}"
-
-# if a specific submodel in the environment variable is not specified, all the submodels under the model directory will be tested
-parameters = []
-if submodel_name != "*":
-    parameters = [submodel_name]
-else:
-    for filename in os.listdir(SUBMODEL_FOLDER_PATH):
-        if ".json" in filename:
-            parameters.append(filename.split(".")[0])
-
 
 # Helper methods
 def fetch_source_fixtures_for_run_flags(inference_list, model_name, submodel_name):
@@ -66,15 +52,15 @@ def common_run_flags_generation(input_list, output_list):
     return flags_list
 
 
-@pytest.mark.parametrize("submodel_name", parameters)
-class TestModelQuality:
-    @pytest.fixture(autouse=True)
-    @classmethod
-    def setup_class(self, submodel_name):
-        self.model_name = model_name
-        self.submodel_name = submodel_name
+class ModelQualityRunItem(pytest.Item):
+    
+    def __init__(self, spec, **kwargs):
+        super().__init__(**kwargs)
+        self.spec = spec
+        self.model_name = self.spec.model_name
+        self.submodel_name = self.spec.submodel_name
 
-        SUBMODEL_FILE_PATH = THIS_DIR / f"{model_name}/{self.submodel_name}.json"
+        SUBMODEL_FILE_PATH = THIS_DIR / f"{self.model_name}/{self.submodel_name}.json"
 
         with open(SUBMODEL_FILE_PATH, "r") as file:
             data = json.load(file)
@@ -163,11 +149,16 @@ class TestModelQuality:
                 else None
             )
             self.add_pipeline_module = data.get("add_pipeline_module", False)
+            
+    def runtest(self):
+        self.test_compile_cpu()
+        self.test_run_cpu_threshold()
+        self.test_compile_rocm()
+        self.test_run_rocm_threshold()
 
     ###############################################################################
     # CPU
     ###############################################################################
-    @pytest.mark.order(1)
     def test_compile_cpu(self):
         if self.rocm_tests_only:
             pytest.skip("Only ROCM tests are being run, skipping CPU tests...")
@@ -192,7 +183,6 @@ class TestModelQuality:
                 / Path("pipeline_model").with_suffix(f".cpu.vmfb"),
             )
 
-    @pytest.mark.order(2)
     def test_run_cpu_threshold(self):
         if self.rocm_tests_only:
             pytest.skip("Only ROCM tests are being run, skipping CPU tests...")
@@ -229,7 +219,6 @@ class TestModelQuality:
     ###############################################################################
     # ROCM
     ###############################################################################
-    @pytest.mark.order(1)
     def test_compile_rocm(self):
         if backend in self.rocm_compile_chip_expecting_to_fail:
             pytest.xfail(
@@ -258,7 +247,6 @@ class TestModelQuality:
                 / Path("pipeline_model").with_suffix(f".rocm_{backend}.vmfb"),
             )
 
-    @pytest.mark.order(2)
     def test_run_rocm_threshold(self):
         if self.compile_only:
             pytest.skip(
@@ -288,3 +276,9 @@ class TestModelQuality:
             function=self.run_rocm_function,
             args=args,
         )
+
+    def repr_failure(self, excinfo):
+        return super().repr_failure(excinfo)
+        
+    def reportinfo(self):
+        return self.path, 0, f"usecase: {self.name}"
