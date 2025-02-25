@@ -26,19 +26,19 @@ artifacts_dir = f"{os.getenv('IREE_TEST_FILES', default=str(PARENT_DIR))}/artifa
 artifacts_dir = Path(os.path.expanduser(artifacts_dir)).resolve()
 backend = os.getenv("BACKEND", default="gfx942")
 sku = os.getenv("SKU", default="mi300")
-model_name = os.getenv("BENCHMARK_MODEL", default="sdxl")
-benchmark_file_name = os.getenv("BENCHMARK_FILE_NAME", default="*")
+# model_name = os.getenv("BENCHMARK_MODEL", default="sdxl")
+# benchmark_file_name = os.getenv("BENCHMARK_FILE_NAME", default="*")
 
-SUBMODEL_FOLDER_PATH = THIS_DIR / f"{model_name}"
+# SUBMODEL_FOLDER_PATH = THIS_DIR / f"{model_name}"
 
-# if a specific submodel in the environment variable is not specified, all the submodels under the model directory will be tested
-parameters = []
-if benchmark_file_name != "*":
-    parameters = [benchmark_file_name]
-else:
-    for filename in os.listdir(SUBMODEL_FOLDER_PATH):
-        if ".json" in filename:
-            parameters.append(filename.split(".")[0])
+# # if a specific submodel in the environment variable is not specified, all the submodels under the model directory will be tested
+# parameters = []
+# if benchmark_file_name != "*":
+#     parameters = [benchmark_file_name]
+# else:
+#     for filename in os.listdir(SUBMODEL_FOLDER_PATH):
+#         if ".json" in filename:
+#             parameters.append(filename.split(".")[0])
 
 """
 Helper methods
@@ -95,13 +95,13 @@ def e2e_iree_benchmark_module_args(modules, file_suffix):
     return exec_args
 
 
-@pytest.mark.parametrize("benchmark_file_name", parameters)
-class TestModelBenchmark:
-    @pytest.fixture(autouse=True)
-    @classmethod
-    def setup_class(self, benchmark_file_name):
-        self.model_name = model_name
-        SUBMODEL_FILE_PATH = THIS_DIR / f"{model_name}/{benchmark_file_name}.json"
+class ModelBenchmarkRunItem(pytest.Item):
+    
+    def __init__(self, spec, **kwargs):
+        self.spec = spec
+        self.model_name = self.spec.model_name
+        self.benchmark_file_name = self.spec.benchmark_file_name
+        SUBMODEL_FILE_PATH = THIS_DIR / f"{self.model_name}/{self.benchmark_file_name}.json"
         split_file_name = benchmark_file_name.split("_")
         self.submodel_name = "_".join(split_file_name[:-1])
         type_of_backend = split_file_name[-1]
@@ -147,7 +147,7 @@ class TestModelBenchmark:
             elif type_of_backend == "cpu":
                 self.file_suffix = "cpu"
 
-    def test_benchmark(self):
+    def runtest(self):
         # if a rocm chip is designated to be ignored in JSON file, skip test
         if backend in self.specific_chip_to_ignore:
             pytest.skip(
