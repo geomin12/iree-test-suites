@@ -60,7 +60,7 @@ class ModelQualityRunItem(pytest.Item):
         self.model_name = self.spec.model_name
         self.quality_file_name = self.spec.quality_file_name
         SUBMODEL_FILE_PATH = THIS_DIR / f"{self.model_name}/{self.quality_file_name}.json"
-        split_file_name = self.benchmark_file_name.split("_")
+        split_file_name = self.quality_file_name.split("_")
         self.submodel_name = "_".join(split_file_name[:-1])
         self.type_of_backend = split_file_name[-1]
 
@@ -129,7 +129,6 @@ class ModelQualityRunItem(pytest.Item):
             self.pipeline_compiler_flags = data.get(
                 "pipeline_compiler_flags", []
             )
-            self.pipeline_compiler_flags.append(f"--iree-hal-target-backends={self.type_of_backend}")
             self.pipeline_mlir = (
                 fetch_source_fixture(
                     data.get("pipeline_mlir"),
@@ -143,7 +142,7 @@ class ModelQualityRunItem(pytest.Item):
             if self.type_of_backend == "rocm":
                 self.file_suffix = f"{self.type_of_backend}_{chip}"
                 self.compiler_flags += [
-                    f"--iree-hip-target={backend}",
+                    f"--iree-hip-target={chip}",
                 ]
                 self.pipeline_compiler_flags.append(f"--iree-hip-target={chip}")
 

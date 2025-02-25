@@ -27,7 +27,7 @@
     "real_weights": "https://sharkpublic.blob.core.windows.net/sharkpublic/sai/sdxl-scheduled-unet/real_weights.irpa",
     "mlir": "https://sharkpublic.blob.core.windows.net/sharkpublic/ian/sdxl_960x1024/stable_diffusion_xl_base_1_0_bs1_64_960x1024_fp16_unet.mlir",
     "device": "hip",
-    "rocm_compiler_flags": [
+    "compiler_flags": [
         "--iree-hal-target-backends=rocm",
         "--iree-opt-const-eval=false",
         "--iree-opt-strip-assertions=true",

@@ -38,8 +38,7 @@
         "--iree-global-opt-enable-quantized-matmul-reassociation"
     ],
     "pipeline_compiler_flags": [
-        "--verify=false",
-        "--iree-opt-const-eval=false"
+        "--iree-hal-target-backends=llvm-cpu"
     ],
     "threshold_args": [
         "--expected_f16_threshold=0.8f"
