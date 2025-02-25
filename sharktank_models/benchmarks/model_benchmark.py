@@ -101,7 +101,7 @@ class ModelBenchmarkRunItem(pytest.Item):
         self.spec = spec
         self.model_name = self.spec.model_name
         self.benchmark_file_name = self.spec.benchmark_file_name
-        SUBMODEL_FILE_PATH = THIS_DIR / f"{self.model_name}/{self.benchmark_file_name}.json"
+        SUBMODEL_FILE_PATH = THIS_DIR / f"{self.model_name}/{self.benchmark_file_name}"
         split_file_name = benchmark_file_name.split("_")
         self.submodel_name = "_".join(split_file_name[:-1])
         type_of_backend = split_file_name[-1]
