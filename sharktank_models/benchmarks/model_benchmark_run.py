@@ -24,7 +24,7 @@ PARENT_DIR = Path(__file__).parent.parent
 vmfb_dir = os.getenv("TEST_OUTPUT_ARTIFACTS", default=str(PARENT_DIR))
 artifacts_dir = f"{os.getenv('IREE_TEST_FILES', default=str(PARENT_DIR))}/artifacts"
 artifacts_dir = Path(os.path.expanduser(artifacts_dir)).resolve()
-backend = os.getenv("BACKEND", default="gfx942")
+chip = os.getenv("ROCM_CHIP", default="gfx942")
 sku = os.getenv("SKU", default="mi300")
 
 """
@@ -127,9 +127,9 @@ class ModelBenchmarkRunItem(pytest.Item):
             self.compile_flags = data.get("compile_flags", [])
             self.benchmark_flags = data.get("benchmark_flags", [])
             if type_of_backend == "rocm":
-                self.file_suffix = f"{type_of_backend}_{backend}"
+                self.file_suffix = f"{type_of_backend}_{chip}"
                 self.compile_flags += [
-                    f"--iree-hip-target={backend}",
+                    f"--iree-hip-target={chip}",
                 ]
 
             elif type_of_backend == "cpu":
@@ -137,9 +137,9 @@ class ModelBenchmarkRunItem(pytest.Item):
 
     def runtest(self):
         # if a rocm chip is designated to be ignored in JSON file, skip test
-        if backend in self.specific_chip_to_ignore:
+        if chip in self.specific_chip_to_ignore:
             pytest.skip(
-                f"Ignoring benchmark test for {self.model_name} {self.submodel_name} for chip {backend}"
+                f"Ignoring benchmark test for {self.model_name} {self.submodel_name} for chip {chip}"
             )
 
         # if compilation is required, run this step

@@ -7,6 +7,9 @@
 import pytest
 from model_quality_run import ModelQualityRunItem
 from pathlib import Path
+import os
+import logging
+from dataclasses import dataclass
 
 THIS_DIR = Path(__file__).parent
 backend = os.getenv("BACKEND", default="gfx942")
@@ -27,20 +30,20 @@ def pytest_collect_file(parent, file_path):
 @dataclass(frozen = True)
 class QualityTestSpec:
     model_name: str
-    submodel_name: str
+    quality_file_name: str
     
 class SharkTankModelQualityTests(pytest.File):
     
     def collect(self):
         path = str(self.path).split("/")
-        submodel_name = path[-1].replace(".json", "")
+        quality_file_name = path[-1].replace(".json", "")
         model_name = path[-2]
         
-        item_name = f"{model_name} :: {submodel_name}"
+        item_name = f"{model_name} :: {quality_file_name}"
         
         spec = QualityTestSpec(
             model_name = model_name,
-            submodel_name = submodel_name
+            quality_file_name = quality_file_name
         )
         
         yield ModelQualityRunItem.from_parent(self, name=item_name, spec=spec)
